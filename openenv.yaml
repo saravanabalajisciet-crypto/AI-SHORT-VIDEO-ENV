@@ -1,0 +1,321 @@
+name: ai-short-video-optimization
+version: "4.0.0"
+description: >
+  OpenEnv-compatible RL environment that trains agents to edit short-form videos
+  (Reels / Shorts / TikTok) for maximum viral engagement. Features retention curves,
+  hook strength, pacing analysis, production quality metrics, and AI feedback.
+
+author: saravanabalajisciet-crypto
+license: MIT
+
+# ── server ─────────────────────────────────────────────────────────────────────
+server:
+  base_url: http://localhost:8000
+  docs_url: http://localhost:8000/docs
+
+# ── endpoints ──────────────────────────────────────────────────────────────────
+endpoints:
+  reset:
+    method: POST
+    path: /reset
+    description: Initialize a new episode. Returns the starting State.
+    query_params:
+      platform:
+        type: string
+        enum: [reels, shorts, tiktok]
+        default: reels
+      seed:
+        type: integer
+        default: 42
+        description: RNG seed for reproducibility
+
+  step:
+    method: POST
+    path: /step
+    description: Apply one action. Returns state, reward, done, info.
+    body:
+      action_type:
+        type: string
+        required: true
+      parameters:
+        type: object
+        required: false
+
+  state:
+    method: GET
+    path: /state
+    description: Read current state without advancing the episode.
+
+  tasks:
+    method: GET
+    path: /tasks
+    description: Return all three benchmark task definitions.
+
+  grader:
+    method: GET
+    path: /grader
+    description: Score the current state. Returns score (0.0–1.0) with breakdown.
+
+  baseline:
+    method: GET
+    path: /baseline
+    description: Run the deterministic baseline agent on all three tasks.
+
+  feedback:
+    method: GET
+    path: /feedback
+    description: Return AI-generated coaching tips based on the current state.
+
+# ── action space ───────────────────────────────────────────────────────────────
+actions:
+  cut_scene:
+    description: Remove a scene from the timeline.
+    parameters:
+      scene_id:
+        type: string
+        required: true
+        description: ID of the scene to remove (e.g. "scene_1")
+
+  add_subtitles:
+    description: Enable subtitles. Lifts engagement on all scenes by +0.06.
+    parameters: {}
+
+  add_music:
+    description: Add background music. Boosts hook/content scenes by +0.12.
+    parameters:
+      genre:
+        type: string
+        required: false
+
+  reorder_scenes:
+    description: Reorder all scenes. Hook-first placement gives +0.02 global lift.
+    parameters:
+      order:
+        type: array
+        items:
+          type: string
+        required: true
+        description: List of all current scene IDs in the desired order.
+
+  boost_hook:
+    description: >
+      Strengthen the first scene. hook_strength +0.30, engagement +0.20,
+      transition_quality +0.10. Carries +0.10 energy to the second scene.
+    parameters: {}
+
+  trim_duration:
+    description: >
+      Remove lowest-engagement non-hook scenes until duration is within target.
+      Remaining scenes receive +0.03 engagement lift.
+    parameters:
+      target_seconds:
+        type: number
+        required: false
+        default: 30.0
+
+  enhance_pacing:
+    description: >
+      Smooth engagement transitions using neighbour averaging.
+      Applies a global +0.02 micro-lift.
+    parameters: {}
+
+  improve_transition:
+    description: Raise transition_quality on all scenes by +0.15 and engagement by +0.03.
+    parameters: {}
+
+  smooth_cut:
+    description: Raise cut_smoothness on all scenes by +0.15 and engagement by +0.02.
+    parameters: {}
+
+  sync_audio:
+    description: Raise audio_sync_score on all scenes by +0.15 and engagement by +0.03.
+    parameters: {}
+
+# ── observation space ──────────────────────────────────────────────────────────
+observation:
+  scenes:
+    type: array
+    description: List of Scene objects in timeline order.
+    items:
+      id:
+        type: string
+      duration:
+        type: number
+        description: Scene duration in seconds.
+      engagement_score:
+        type: number
+        range: [0.0, 1.0]
+      scene_type:
+        type: string
+        enum: [hook, highlight, content, filler, transition, cta]
+      has_hook:
+        type: boolean
+      hook_strength:
+        type: number
+        range: [0.0, 1.0]
+      transition_quality:
+        type: number
+        range: [0.0, 1.0]
+      cut_smoothness:
+        type: number
+        range: [0.0, 1.0]
+      audio_sync_score:
+        type: number
+        range: [0.0, 1.0]
+
+  total_duration:
+    type: number
+    description: Total video length in seconds.
+
+  subtitles_present:
+    type: boolean
+
+  music_added:
+    type: boolean
+
+  platform:
+    type: string
+    enum: [reels, shorts, tiktok]
+
+  current_engagement_score:
+    type: number
+    range: [0.0, 1.0]
+    description: Mean engagement across all scenes.
+
+  hook_first:
+    type: boolean
+    description: True if first scene is hook/highlight with has_hook=True.
+
+  platform_compliant:
+    type: boolean
+    description: True if total_duration <= platform limit.
+
+  retention_curve:
+    type: array
+    items:
+      type: number
+    description: Per-scene viewer retention values (0.0–1.0).
+
+  avg_retention:
+    type: number
+    range: [0.0, 1.0]
+    description: Mean of retention_curve.
+
+  watch_time:
+    type: number
+    description: Estimated watch time in seconds (duration × retention).
+
+  hook_strength:
+    type: number
+    range: [0.0, 1.0]
+    description: Hook strength of the first scene (0 if no hook-first).
+
+  pacing_score:
+    type: number
+    range: [0.0, 1.0]
+    description: Smoothness of engagement transitions between scenes.
+
+  avg_transition_quality:
+    type: number
+    range: [0.0, 1.0]
+
+  avg_cut_smoothness:
+    type: number
+    range: [0.0, 1.0]
+
+  avg_audio_sync_score:
+    type: number
+    range: [0.0, 1.0]
+
+# ── reward ─────────────────────────────────────────────────────────────────────
+reward:
+  type: dense
+  description: Per-step reward signal. Agent receives feedback after every action.
+  components:
+    engagement_delta:    "delta * 2.5"
+    retention_delta:     "delta * 2.0"
+    hook_strength_delta: "delta * 1.5"
+    pacing_delta:        "delta * 1.0"
+    transition_quality:  "value * 0.05  (continuous)"
+    cut_smoothness:      "value * 0.05  (continuous)"
+    audio_sync:          "value * 0.05  (continuous)"
+    platform_compliance: "+0.20 on transition, +0.05 persistent"
+    subtitles:           "+0.10 persistent"
+    hook_first:          "+0.15 on transition, +0.03 persistent"
+    engagement_milestone: "+0.20 when crossing 0.80"
+    hook_milestone:       "+0.15 when crossing 0.70"
+  penalties:
+    invalid_scene_id:         -0.30
+    high_engagement_cut:      -0.20
+    repeated_idempotent:      -0.20
+    over_editing:             -0.10
+    no_measurable_change:     -0.05
+
+# ── grader ─────────────────────────────────────────────────────────────────────
+grader:
+  type: deterministic
+  formula: >
+    score = engagement * 0.35
+          + retention * 0.15
+          + platform_compliance * 0.20
+          + subtitles * 0.10
+          + hook_strength * 0.10
+          + pacing * 0.05
+          + avg_transition_quality * 0.03
+          + avg_cut_smoothness * 0.01
+          + avg_audio_sync_score * 0.01
+  range: [0.0, 1.0]
+
+# ── tasks ──────────────────────────────────────────────────────────────────────
+tasks:
+  - id: task_1
+    level: easy
+    target_score: 0.65
+    description: >
+      Remove low-engagement scenes (score < 0.30) to raise average engagement
+      above 0.60. Filler and transition scenes drag the average down.
+    evaluation_criteria: >
+      current_engagement_score >= 0.60 AND platform_compliant == True.
+      Grader score >= 0.65.
+
+  - id: task_2
+    level: medium
+    target_score: 0.78
+    description: >
+      Optimize for platform compliance and viewer retention:
+      total_duration <= 30s, subtitles present, avg_retention >= 0.55.
+      Also improve production quality (transition, cut, audio).
+    evaluation_criteria: >
+      platform_compliant == True AND subtitles_present == True
+      AND avg_retention >= 0.55 AND current_engagement_score >= 0.65.
+      Grader score >= 0.78.
+
+  - id: task_3
+    level: hard
+    target_score: 0.875
+    description: >
+      Full viral optimization: engagement >= 0.80, avg_retention >= 0.90,
+      hook_strength >= 0.70, avg_transition_quality >= 0.70,
+      platform compliance, subtitles, and hook-first ordering.
+      Requires all 10 actions in the correct sequence.
+    evaluation_criteria: >
+      current_engagement_score >= 0.80 AND avg_retention >= 0.90
+      AND hook_strength >= 0.70 AND avg_transition_quality >= 0.70
+      AND platform_compliant == True AND subtitles_present == True.
+      Grader score >= 0.875.
+
+# ── episode ────────────────────────────────────────────────────────────────────
+episode:
+  max_steps: 15
+  done_conditions:
+    - step_count >= max_steps
+    - current_engagement_score >= 0.92
+
+# ── platforms ──────────────────────────────────────────────────────────────────
+platforms:
+  reels:
+    max_duration: 30.0
+  shorts:
+    max_duration: 60.0
+  tiktok:
+    max_duration: 60.0
