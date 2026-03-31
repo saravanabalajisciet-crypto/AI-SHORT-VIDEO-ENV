@@ -1,3 +1,12 @@
+---
+title: AIVideoOptimizer
+emoji: 🎬
+colorFrom: purple
+colorTo: pink
+sdk: docker
+pinned: false
+---
+
 # AI Short-Form Video Optimization Environment
 
 An OpenEnv-compatible reinforcement learning environment that teaches agents to edit short-form videos for maximum viral engagement.
