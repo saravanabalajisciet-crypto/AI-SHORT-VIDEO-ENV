@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ai-video-optimizer-env"
+version = "4.0.0"
+description = "OpenEnv-compatible RL environment for short-form video optimization"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.0.0",
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://huggingface.co/spaces/saravanabalajisara/ai-video-optimizer-env"
+Repository = "https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV"
