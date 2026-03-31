@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Literal, Dict, Any
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Literal, Dict, Any, Optional
 from enum import Enum
 
 
@@ -19,8 +19,37 @@ class ActionType(str, Enum):
 
 
 class Action(BaseModel):
-    action_type: ActionType
+    # Accepts: action_type, action, or type — all map to the same field
+    action_type: Optional[ActionType] = Field(None, description="Action to perform")
+    action: Optional[str] = Field(None, description="Alias for action_type")
+    type: Optional[str] = Field(None, description="Alias for action_type")
     parameters: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"action_type": "boost_hook", "parameters": {}},
+                {"action": "cut_scene", "parameters": {"scene_id": "scene_1"}},
+                {"type": "add_music", "parameters": {"genre": "pop"}},
+            ]
+        }
+    }
+
+    @model_validator(mode="after")
+    def resolve_action_type(self):
+        if self.action_type is None:
+            raw = self.action or self.type
+            if raw is None:
+                raise ValueError(
+                    "action_type is required. Send one of: "
+                    '{"action_type": "boost_hook"}, {"action": "boost_hook"}, or {"type": "boost_hook"}'
+                )
+            try:
+                self.action_type = ActionType(raw)
+            except ValueError:
+                valid = [e.value for e in ActionType]
+                raise ValueError(f"Invalid action '{raw}'. Valid actions: {valid}")
+        return self
 
 
 # ── Scene ──────────────────────────────────────────────────────────────────────

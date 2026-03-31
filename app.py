@@ -1,11 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query
-from typing import List, Literal
+from fastapi import FastAPI, HTTPException, Query, Request, Body
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from typing import List, Literal, Optional
+from pydantic import BaseModel
 
 from models import (
     Action, State, StepResponse, GraderResponse,
-    TaskDefinition, BaselineResult, AIFeedback,
+    TaskDefinition, BaselineResult, AIFeedback, ActionType,
 )
 from environment import VideoOptimizationEnv, PLATFORM_LIMITS, generate_feedback
+from pydantic import ValidationError
 
 app = FastAPI(
     title="AI Short-Form Video Optimization Environment",
@@ -15,18 +19,63 @@ app = FastAPI(
         "cut smoothness, audio sync, and AI feedback."
     ),
     version="4.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 env = VideoOptimizationEnv(platform="reels", seed=42)
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Return a clean 400 with readable message instead of raw 422."""
+    errors = exc.errors()
+    msg = errors[0]["msg"] if errors else "Invalid request payload."
+    return JSONResponse(status_code=400, content={"detail": msg})
+
+
+@app.get("/", tags=["Health"])
+def root():
+    """Health check — returns service info."""
+    return {
+        "name": "AI Short-Form Video Optimization Environment",
+        "version": "4.0.0",
+        "status": "running",
+        "docs": "/docs",
+        "endpoints": ["/reset", "/step", "/state", "/tasks", "/grader", "/baseline", "/feedback"],
+    }
+
+
 # ── /reset ─────────────────────────────────────────────────────────────────────
+class ResetRequest(BaseModel):
+    platform: str = "reels"
+    seed: int = 42
+
+
 @app.post("/reset", response_model=State, tags=["Environment"])
-def reset(
+async def reset(
+    request: Request,
     platform: Literal["reels", "shorts", "tiktok"] = Query("reels"),
     seed: int = Query(42, description="RNG seed for reproducibility"),
 ):
-    """Start a new episode. Returns the initial state."""
+    """
+    Start a new episode. Returns the initial state.
+
+    Accepts query params OR JSON body:
+    - /reset?platform=reels&seed=42
+    - Body: {"platform": "reels", "seed": 42}
+    """
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            platform = body.get("platform", platform)
+            seed = int(body.get("seed", seed))
+    except Exception:
+        pass  # no body or invalid JSON — fall back to query params
+
+    if platform not in ("reels", "shorts", "tiktok"):
+        raise HTTPException(status_code=400, detail=f"Invalid platform '{platform}'. Choose: reels, shorts, tiktok")
+
     env.platform = platform
     env.seed = seed
     return env.reset()
@@ -34,26 +83,39 @@ def reset(
 
 # ── /step ──────────────────────────────────────────────────────────────────────
 @app.post("/step", response_model=StepResponse, tags=["Environment"])
-def step(action: Action):
+async def step(request: Request):
     """
     Apply one action. Returns (state, reward, done, info).
 
-    Actions:
-    - cut_scene:           {"scene_id": str}
-    - reorder_scenes:      {"order": [str, ...]}
-    - add_subtitles:       {}
-    - add_music:           {"genre": str}
-    - boost_hook:          {}
-    - trim_duration:       {"target_seconds": float}
-    - enhance_pacing:      {}
-    - improve_transition:  {}
-    - smooth_cut:          {}
-    - sync_audio:          {}
+    Accepts any of these JSON formats:
+    - {"action_type": "boost_hook"}
+    - {"action": "boost_hook"}
+    - {"type": "boost_hook"}
+
+    With optional parameters:
+    - {"action_type": "cut_scene", "parameters": {"scene_id": "scene_1"}}
     """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body.")
+
+    print(f"[/step] received: {body}")
+
+    try:
+        action = Action(**body)
+    except ValidationError as e:
+        errors = e.errors()
+        msg = errors[0]["msg"] if errors else "Invalid action payload."
+        raise HTTPException(status_code=400, detail=msg)
+
+    print(f"[/step] resolved action_type: {action.action_type}")
+
     try:
         state, reward, done, info = env.step(action)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
     return StepResponse(state=state, reward=reward, done=done, info=info)
 
 
