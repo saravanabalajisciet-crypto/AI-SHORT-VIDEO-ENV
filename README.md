@@ -1,12 +1,4 @@
----
-title: ai-video-optimizer-env
-emoji: 🎬
-colorFrom: purple
-colorTo: pink
-sdk: docker
-app_port: 7860
-pinned: false
----
+
 
 # AI Short-Form Video Optimization Environment
 
