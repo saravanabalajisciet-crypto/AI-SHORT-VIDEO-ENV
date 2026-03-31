@@ -46,6 +46,12 @@ def root():
     }
 
 
+@app.get("/health", tags=["Health"])
+def health():
+    """OpenEnv health check."""
+    return {"status": "healthy"}
+
+
 # ── /reset ─────────────────────────────────────────────────────────────────────
 class ResetRequest(BaseModel):
     platform: str = "reels"
@@ -379,3 +385,85 @@ def baseline():
         ))
 
     return results
+
+# ── /ws WebSocket ──────────────────────────────────────────────────────────────
+from fastapi import WebSocket, WebSocketDisconnect
+import json
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for persistent multi-mode sessions.
+    Supports the same actions as POST /step.
+
+    Send JSON messages:
+      {"type": "reset", "platform": "reels", "seed": 42}
+      {"type": "step", "action": "boost_hook", "parameters": {}}
+      {"type": "state"}
+      {"type": "grader"}
+    """
+    await websocket.accept()
+    ws_env = VideoOptimizationEnv(platform="reels", seed=42)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.send_json({"error": "Invalid JSON"})
+                continue
+
+            msg_type = msg.get("type") or msg.get("action_type")
+
+            if msg_type == "reset":
+                platform = msg.get("platform", "reels")
+                seed = int(msg.get("seed", 42))
+                ws_env.platform = platform
+                ws_env.seed = seed
+                state = ws_env.reset()
+                await websocket.send_json({"type": "reset", "state": state.model_dump()})
+
+            elif msg_type == "step":
+                action_str = msg.get("action") or msg.get("action_type") or msg.get("type")
+                parameters = msg.get("parameters", {})
+                try:
+                    action = Action(action_type=action_str, parameters=parameters)
+                    state, reward, done, info = ws_env.step(action)
+                    await websocket.send_json({
+                        "type": "step",
+                        "state": state.model_dump(),
+                        "reward": reward,
+                        "done": done,
+                        "info": info,
+                    })
+                except Exception as e:
+                    await websocket.send_json({"error": str(e)})
+
+            elif msg_type == "state":
+                try:
+                    state = ws_env.state
+                    await websocket.send_json({"type": "state", "state": state.model_dump()})
+                except RuntimeError as e:
+                    await websocket.send_json({"error": str(e)})
+
+            elif msg_type == "grader":
+                try:
+                    state = ws_env.state
+                    score, breakdown = _compute_score(state.observation)
+                    await websocket.send_json({
+                        "type": "grader",
+                        "score": score,
+                        "breakdown": breakdown,
+                        "passed": score >= 0.875,
+                    })
+                except RuntimeError as e:
+                    await websocket.send_json({"error": str(e)})
+
+            else:
+                await websocket.send_json({
+                    "error": f"Unknown type '{msg_type}'. Use: reset, step, state, grader"
+                })
+
+    except WebSocketDisconnect:
+        pass
