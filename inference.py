@@ -121,11 +121,14 @@ def run_episode(task_id: str) -> dict:
         print(f"  Task: {task_id.upper()}  |  Model: {MODEL_NAME}  |  Seed: {SEED}")
         print(f"{'-'*W}")
 
+        # Structured output: START
+        print(f"[START] task={task_id}", flush=True)
+
         # 1. Reset
         state = post("/reset", params={"platform": PLATFORM, "seed": SEED})
         if not state:
             print(f"  [ERROR] /reset returned empty -- skipping {task_id}")
-            print(f"  score=0.0")
+            print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
             return default_result
 
         obs = _obs(state)
@@ -157,6 +160,7 @@ def run_episode(task_id: str) -> dict:
                 step_num     += 1
                 o   = _obs(state)
                 tag = "OK" if valid else "!!"
+                print(f"[STEP] step={step_num} action={action_type} reward={reward:.4f}", flush=True)
                 print(f"  step {step_num:02d} {tag} | {action_type:<20s} | "
                       f"r={reward:+.3f} | eng={_get(o,'current_engagement_score'):.3f} | "
                       f"ret={_get(o,'avg_retention'):.3f} | "
@@ -249,6 +253,9 @@ def run_episode(task_id: str) -> dict:
         passed = score >= TASK_TARGETS.get(task_id, 1.0)
         final_obs = _obs(state)
 
+        # Structured output: END
+        print(f"[END] task={task_id} score={score:.4f} steps={step_num}", flush=True)
+
         print(f"\n  GRADER SCORE : {score:.4f}  {'PASSED' if passed else 'FAILED'}")
         print(f"  Total reward : {total_reward:.4f}  |  Steps: {step_num}")
         for k, v in breakdown.items():
@@ -270,7 +277,7 @@ def run_episode(task_id: str) -> dict:
 
     except Exception as e:
         print(f"  [ERROR] run_episode({task_id}) crashed: {e}")
-        print(f"  score=0.0")
+        print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
         return default_result
 
 
