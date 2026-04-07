@@ -1,4 +1,4 @@
-FROM python:3.11.9-slim
+FROM python:3.11-slim-bullseye
 
 WORKDIR /app
 
@@ -7,8 +7,8 @@ ENV PYTHONUNBUFFERED=1
 
 # Install dependencies with retry-safe flags
 COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir --timeout 100 --retries 5 -r requirements.txt
+RUN pip install --upgrade pip --no-cache-dir
+RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
 
 # Copy application files
 COPY app.py .
