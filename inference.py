@@ -14,12 +14,7 @@ Usage:
 import os
 import sys
 import time
-import io
 import requests
-
-# Force UTF-8 stdout/stderr so box chars never cause codec errors on Windows
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # -- config ---------------------------------------------------------------------
 BASE_URL   = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
@@ -30,8 +25,8 @@ HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
 PLATFORM     = "reels"
 SEED         = 42
-TIMEOUT      = 5        # seconds per request
-MAX_RETRIES  = 3        # retries before giving up
+TIMEOUT      = 30       # seconds per request
+MAX_RETRIES  = 5        # retries before giving up
 MAX_STEPS    = 15       # hard cap -- never exceed
 
 TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.875}
@@ -355,4 +350,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n[FATAL] Top-level crash: {e}")
+        print("score=0.0")
+        sys.exit(0)
