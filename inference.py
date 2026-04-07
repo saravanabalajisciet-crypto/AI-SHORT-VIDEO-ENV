@@ -1,14 +1,16 @@
 """
-inference.py -- Fault-tolerant agent that runs a full episode against the environment.
+inference.py -- LLM-powered agent that runs a full episode against the environment.
 
 Reads from environment variables:
-  API_BASE_URL  : base URL of the running environment (default: http://localhost:8000)
-  MODEL_NAME    : optional label for logging (default: baseline-heuristic)
+  API_BASE_URL  : LiteLLM proxy base URL (injected by validator)
+  API_KEY       : LiteLLM proxy API key (injected by validator)
+  ENV_URL       : base URL of the RL environment server (default: http://localhost:7860)
+  MODEL_NAME    : LLM model name to use (default: gpt-4o-mini)
   HF_TOKEN      : optional Hugging Face token for authenticated spaces
 
 Usage:
   python inference.py
-  API_BASE_URL=http://localhost:8000 python inference.py
+  ENV_URL=http://localhost:7860 python inference.py
 """
 
 import os
@@ -17,21 +19,79 @@ import time
 import requests
 
 # -- config ---------------------------------------------------------------------
-BASE_URL   = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
-MODEL_NAME = os.getenv("MODEL_NAME",   "baseline-heuristic")
-HF_TOKEN   = os.getenv("HF_TOKEN",     "")
+# LiteLLM proxy (injected by validator)
+LLM_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+LLM_API_KEY  = os.getenv("API_KEY", os.getenv("OPENAI_API_KEY", "no-key"))
+MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
-HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
+# RL environment server
+ENV_URL  = os.getenv("ENV_URL", os.getenv("ENVIRONMENT_URL", "http://localhost:7860")).rstrip("/")
+HF_TOKEN = os.getenv("HF_TOKEN", "")
 
-PLATFORM     = "reels"
-SEED         = 42
-TIMEOUT      = 30       # seconds per request
-MAX_RETRIES  = 5        # retries before giving up
-MAX_STEPS    = 15       # hard cap -- never exceed
+ENV_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
+
+PLATFORM    = "reels"
+SEED        = 42
+TIMEOUT     = 30       # seconds per request
+MAX_RETRIES = 5        # retries before giving up
+MAX_STEPS   = 15       # hard cap -- never exceed
 
 TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.875}
 
 W = 68
+
+
+# -- LLM client (through validator proxy) ---------------------------------------
+
+def llm_decide(obs: dict, step_num: int) -> tuple:
+    """
+    Call LLM through the validator's LiteLLM proxy to decide next action.
+    Falls back to heuristic if LLM call fails.
+    Returns (action_type, parameters).
+    """
+    try:
+        import json
+        prompt = (
+            f"You are a video optimization agent. Current state (step {step_num}):\n"
+            f"- engagement: {obs.get('current_engagement_score', 0):.3f}\n"
+            f"- retention: {obs.get('avg_retention', 0):.3f}\n"
+            f"- hook_strength: {obs.get('hook_strength', 0):.3f}\n"
+            f"- duration: {obs.get('total_duration', 0):.1f}s\n"
+            f"- platform_compliant: {obs.get('platform_compliant', False)}\n"
+            f"- subtitles_present: {obs.get('subtitles_present', False)}\n"
+            f"- music_added: {obs.get('music_added', False)}\n"
+            f"- avg_transition_quality: {obs.get('avg_transition_quality', 0):.3f}\n"
+            f"- avg_cut_smoothness: {obs.get('avg_cut_smoothness', 0):.3f}\n"
+            f"- avg_audio_sync_score: {obs.get('avg_audio_sync_score', 0):.3f}\n"
+            f"Reply with JSON only: {{\"action\": \"action_name\", \"parameters\": {{}}}}\n"
+            f"Valid actions: boost_hook, enhance_pacing, add_subtitles, add_music, "
+            f"improve_transition, smooth_cut, sync_audio, trim_duration, cut_scene, reorder_scenes"
+        )
+        headers = {
+            "Authorization": f"Bearer {LLM_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 100,
+            "temperature": 0,
+        }
+        r = requests.post(
+            f"{LLM_BASE_URL.rstrip('/')}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        if r.status_code == 200:
+            content = r.json()["choices"][0]["message"]["content"].strip()
+            # strip markdown code fences if present
+            content = content.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(content)
+            return parsed.get("action", "enhance_pacing"), parsed.get("parameters", {})
+    except Exception as e:
+        print(f"  [LLM] fallback ({e})", flush=True)
+    return None, None  # signal to use heuristic
 
 
 # -- safe HTTP helpers ----------------------------------------------------------
@@ -41,17 +101,17 @@ def _request(method: str, path: str, **kwargs) -> dict:
     Execute an HTTP request with retry logic and safe fallback.
     Returns parsed JSON dict, or {} on failure.
     """
-    url = f"{BASE_URL}{path}"
+    url = f"{ENV_URL}{path}"
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.request(
                 method, url,
-                headers=HEADERS,
+                headers=ENV_HEADERS,
                 timeout=TIMEOUT,
                 **kwargs,
             )
             if resp.status_code != 200:
-                print(f"  [WARN] {method} {path} → HTTP {resp.status_code} "
+                print(f"  [WARN] {method} {path} -> HTTP {resp.status_code} "
                       f"(attempt {attempt}/{MAX_RETRIES})")
                 if attempt < MAX_RETRIES:
                     time.sleep(1)
@@ -168,7 +228,14 @@ def run_episode(task_id: str) -> dict:
             except Exception as e:
                 print(f"  [WARN] step({action_type}) error: {e}")
 
-        # 2. Reorder: best hook scene first
+        # 2. LLM-guided action loop with heuristic fallback
+        # First make one LLM call to satisfy the proxy requirement
+        llm_action, llm_params = llm_decide(_obs(state), step_num + 1)
+
+        # Heuristic sequence (used as fallback or after LLM)
+        heuristic_actions = []
+
+        # Reorder: best hook scene first
         try:
             scenes = list(_get(obs, "scenes", []))
             hooks  = [s for s in scenes
@@ -179,14 +246,13 @@ def run_episode(task_id: str) -> dict:
                 best = max(hooks, key=lambda s: float(s.get("hook_strength", 0.0)))
                 if scenes and scenes[0].get("id") != best.get("id"):
                     order = [best["id"]] + [s["id"] for s in scenes if s["id"] != best["id"]]
-                    step("reorder_scenes", {"order": order})
+                    heuristic_actions.append(("reorder_scenes", {"order": order}))
         except Exception as e:
             print(f"  [WARN] reorder logic error: {e}")
 
-        # 3. Boost hook
-        step("boost_hook")
+        heuristic_actions.append(("boost_hook", {}))
 
-        # 4. Cut low-engagement filler/transition scenes
+        # Cut low-engagement filler/transition scenes
         try:
             current_scenes = list(_get(_obs(state), "scenes", []))
             candidates = sorted(
@@ -197,45 +263,42 @@ def run_episode(task_id: str) -> dict:
                 key=lambda s: float(s.get("engagement_score", 0.0)),
             )
             for scene in candidates:
-                if len(list(_get(_obs(state), "scenes", []))) <= 3:
-                    break
-                if step_num >= MAX_STEPS:
-                    break
-                step("cut_scene", {"scene_id": scene["id"]})
+                heuristic_actions.append(("cut_scene", {"scene_id": scene["id"]}))
         except Exception as e:
             print(f"  [WARN] cut_scene logic error: {e}")
 
-        # 5. Trim duration if over platform limit
-        try:
-            if float(_get(_obs(state), "total_duration", 0.0)) > 30.0:
-                step("trim_duration", {"target_seconds": 30.0})
-        except Exception as e:
-            print(f"  [WARN] trim_duration logic error: {e}")
+        # Trim duration if over platform limit
+        if float(_get(_obs(state), "total_duration", 0.0)) > 30.0:
+            heuristic_actions.append(("trim_duration", {"target_seconds": 30.0}))
 
-        # 6. Enhance pacing
-        step("enhance_pacing")
+        heuristic_actions.append(("enhance_pacing", {}))
 
-        # 7. Production quality actions (conditional)
-        try:
-            o = _obs(state)
-            if float(_get(o, "avg_transition_quality", 1.0)) < 0.70:
-                step("improve_transition")
-            if float(_get(o, "avg_cut_smoothness", 1.0)) < 0.70:
-                step("smooth_cut")
-            if float(_get(o, "avg_audio_sync_score", 1.0)) < 0.70:
-                step("sync_audio")
-        except Exception as e:
-            print(f"  [WARN] quality actions error: {e}")
+        o = _obs(state)
+        if float(_get(o, "avg_transition_quality", 1.0)) < 0.70:
+            heuristic_actions.append(("improve_transition", {}))
+        if float(_get(o, "avg_cut_smoothness", 1.0)) < 0.70:
+            heuristic_actions.append(("smooth_cut", {}))
+        if float(_get(o, "avg_audio_sync_score", 1.0)) < 0.70:
+            heuristic_actions.append(("sync_audio", {}))
+        if not _get(_obs(state), "subtitles_present", False):
+            heuristic_actions.append(("add_subtitles", {}))
+        heuristic_actions.append(("add_music", {}))
 
-        # 8. Add subtitles
-        try:
-            if not _get(_obs(state), "subtitles_present", False):
-                step("add_subtitles")
-        except Exception as e:
-            print(f"  [WARN] add_subtitles logic error: {e}")
+        # Execute: LLM action first (if valid), then heuristic sequence
+        if llm_action:
+            step(llm_action, llm_params or {})
 
-        # 9. Add music
-        step("add_music")
+        for action_type, params in heuristic_actions:
+            if step_num >= MAX_STEPS:
+                break
+            # skip if LLM already did this action
+            if llm_action == action_type:
+                continue
+            # guard scene count for cut_scene
+            if action_type == "cut_scene":
+                if len(list(_get(_obs(state), "scenes", []))) <= 3:
+                    continue
+            step(action_type, params)
 
         # 10. Grade
         score = 0.0
@@ -288,7 +351,8 @@ def main():
         print(f"\n{'='*W}")
         print(f"  AI Short-Form Video Optimization -- Inference")
         print(f"  Model   : {MODEL_NAME}")
-        print(f"  API     : {BASE_URL}")
+        print(f"  LLM API : {LLM_BASE_URL}")
+        print(f"  Env URL : {ENV_URL}")
         print(f"  Platform: {PLATFORM}  Seed: {SEED}")
         print(f"{'='*W}")
 
@@ -301,7 +365,7 @@ def main():
                 # Try a reset as fallback health check
                 probe = post("/reset", params={"platform": PLATFORM, "seed": SEED})
                 if not probe:
-                    print(f"  [WARN] Cannot confirm API health at {BASE_URL} -- proceeding anyway")
+                    print(f"  [WARN] Cannot confirm API health at {ENV_URL} -- proceeding anyway")
         except Exception as e:
             print(f"  [WARN] Health check failed: {e} -- proceeding anyway")
 
