@@ -1,5 +1,15 @@
 
 
+---
+title: AI Video Optimizer Env
+emoji: 🎬
+colorFrom: purple
+colorTo: blue
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # AI Short-Form Video Optimization Environment
 
 An OpenEnv-compatible reinforcement learning environment for training agents to edit short-form videos for maximum viral engagement across Instagram Reels, YouTube Shorts, and TikTok.
