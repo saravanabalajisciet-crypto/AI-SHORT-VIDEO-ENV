@@ -12,22 +12,66 @@ pinned: false
 
 # AI Short-Form Video Optimization Environment
 
-An OpenEnv-compatible reinforcement learning environment for training agents to edit short-form videos for maximum viral engagement across Instagram Reels, YouTube Shorts, and TikTok.
+An OpenEnv-compatible reinforcement learning environment where agents learn to edit short-form videos for maximum viral engagement across Instagram Reels, YouTube Shorts, and TikTok.
 
 ---
 
-## Why This Environment Matters
+## Why This Matters
 
-Short-form video is the dominant content format on the internet — over 500 hours of video are uploaded to YouTube every minute. On platforms like Reels, Shorts, and TikTok, the average viewer decides whether to keep watching within the first three seconds.
+Short-form video is the dominant content format on the internet. On Reels, Shorts, and TikTok, the average viewer decides whether to keep watching **within the first 3 seconds**. A single bad edit decision — wrong scene order, weak hook, poor pacing — can tank a video's reach permanently.
 
-Creators face a genuinely hard multi-objective optimization problem:
+This environment models that reality as a **sequential decision problem with irreversible consequences**:
 
-- Cutting the wrong scene tanks engagement
-- Poor pacing causes viewers to scroll away
-- Weak hooks bury videos in the algorithm
-- Duration violations reduce platform distribution
+- Cutting a scene cannot be undone
+- Hook placement determines the entire retention curve
+- Action order matters — boosting a hook before reordering wastes the boost
+- Over-editing (too many steps) is penalized via efficiency scoring
+- Each platform (Reels/Shorts/TikTok) has different duration constraints
 
-This environment gives RL agents a structured, reproducible testbed to learn the same editorial instincts that experienced human editors develop over years — through interaction, reward signals, and feedback.
+Agents must learn **editorial judgment** — the same skill human editors develop over years — through dense reward signals, structured feedback, and multi-scenario evaluation.
+
+---
+
+## Tasks
+
+| Task   | Level  | Target | Scenario |
+|--------|--------|--------|----------|
+| task_1 | Easy   | 0.65   | Remove low-engagement filler scenes, raise avg engagement > 0.60 |
+| task_2 | Medium | 0.78   | Platform compliance + retention >= 0.55 + production quality |
+| task_3 | Hard   | 0.875  | Full viral optimization — all metrics, correct action order, efficiency bonus |
+
+**Scenario seeds** (via `/scenarios`): 5 diverse starting conditions across platforms and difficulty levels — retention crisis, duration overrun, weak production, TikTok challenge.
+
+---
+
+## Reward & Grader
+
+**Dense per-step reward:**
+
+| Signal | Weight |
+|--------|--------|
+| Engagement delta | × 2.5 |
+| Retention delta | × 2.0 |
+| Hook strength delta | × 1.5 |
+| Pacing delta | × 1.0 |
+| Platform compliance | +0.20 on transition |
+| Subtitles | +0.10 persistent |
+| Hook-first | +0.15 on transition |
+| Engagement milestone (>0.80) | +0.20 |
+| Hook milestone (>0.70) | +0.15 |
+
+**Penalties:** invalid actions (-0.30), removing high-engagement scenes (-0.20), repeated idempotent actions (-0.20), over-editing (-0.10).
+
+**Grader formula (weighted, sums to 1.0):**
+
+```
+score = engagement * 0.35 + retention * 0.15 + platform_compliance * 0.20
+      + subtitles * 0.10 + hook_strength * 0.10 + pacing * 0.05
+      + transition_quality * 0.03 + cut_smoothness * 0.01 + audio_sync * 0.01
+      + efficiency_bonus (up to +0.02 for solving in <= 7 steps)
+```
+
+**Efficiency tiers:** Elite (score >= 0.875 in <= 7 steps) → Optimal → Good → Acceptable.
 
 ---
 

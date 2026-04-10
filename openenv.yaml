@@ -1,5 +1,5 @@
 name: ai-short-video-optimization
-version: "4.0.0"
+version: "5.0.0"
 description: >
   OpenEnv-compatible RL environment that trains agents to edit short-form videos
   (Reels / Shorts / TikTok) for maximum viral engagement. Features retention curves,
@@ -65,6 +65,34 @@ endpoints:
     method: GET
     path: /feedback
     description: Return AI-generated coaching tips based on the current state.
+
+  hint:
+    method: GET
+    path: /hint
+    description: >
+      Tool-style helper. Returns the single best next action to take
+      based on current observation gaps. Helps LLM agents reason without guessing.
+
+  scenarios:
+    method: GET
+    path: /scenarios
+    description: >
+      Returns 5 diverse scenario seeds with descriptions across platforms
+      and difficulty levels. Use with /reset?seed=<seed> for varied evaluation.
+
+  trajectory:
+    method: GET
+    path: /trajectory
+    description: >
+      Returns full action trajectory of current episode with per-step
+      reward, engagement, retention. Useful for debugging agent reasoning.
+
+  efficiency:
+    method: GET
+    path: /efficiency
+    description: >
+      Step efficiency analysis. Rates agent performance (elite/optimal/good)
+      based on score achieved vs steps used. Includes efficiency bonus breakdown.
 
 # ── action space ───────────────────────────────────────────────────────────────
 actions:
