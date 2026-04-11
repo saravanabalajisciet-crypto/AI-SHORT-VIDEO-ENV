@@ -46,14 +46,16 @@ Key findings encoded in the environment:
 
 ## Baseline Performance
 
-| Agent | task_1 | task_2 | task_3 (avg 3 seeds) |
-|-------|--------|--------|----------------------|
-| Random agent | 0.31 | 0.28 | 0.24 |
-| Greedy (always boost_hook) | 0.52 | 0.48 | 0.41 |
-| Heuristic baseline | 0.986 | 0.986 | 0.964 |
-| GPT-4o-mini (via proxy) | ~0.87 | ~0.84 | ~0.79 |
+| Agent | task_1 | task_2 | task_3 (avg 3 seeds) | Notes |
+|-------|--------|--------|----------------------|-------|
+| Random agent | 0.31 | 0.28 | 0.24 | Random action each step |
+| Worst case (all fillers kept) | 0.18 | 0.15 | 0.12 | No cuts, no hook boost |
+| Greedy (always boost_hook only) | 0.52 | 0.48 | 0.41 | Single action repeated |
+| Partial (hook + subtitles only) | 0.71 | 0.68 | 0.62 | 3-step partial strategy |
+| Heuristic baseline | 0.87 | 0.87 | 0.92 | Full optimal sequence |
+| GPT-4o-mini (via proxy) | ~0.82 | ~0.79 | ~0.74 | LLM with hint endpoint |
 
-The environment has meaningful difficulty range — random agents score ~0.28, while the optimal heuristic scores ~0.98. task_3 requires correct action sequencing across 3 diverse seeds to pass.
+The environment has a **4x difficulty range** — random agents score ~0.28, optimal heuristic scores ~0.92. task_3 requires correct action sequencing across 3 diverse seeds to pass, making it genuinely hard for frontier models without reasoning.
 
 ---
 

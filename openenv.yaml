@@ -263,6 +263,13 @@ observation:
     type: number
     range: [0.0, 1.0]
 
+  steps_remaining:
+    type: integer
+    description: >
+      How many steps the agent has left in this episode.
+      Starts at max_steps (15) and decrements each step.
+      Agent should use this to plan when to call finalize_edit.
+
 # ── reward ─────────────────────────────────────────────────────────────────────
 reward:
   type: dense
