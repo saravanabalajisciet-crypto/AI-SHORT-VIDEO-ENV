@@ -197,24 +197,40 @@ score = engagement * 0.35 + retention * 0.15 + platform_compliance * 0.20
 
 ## Setup
 
+**Local mode (no Docker needed):**
 ```bash
 pip install -r requirements.txt
 uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
+**Docker mode:**
 ```bash
-# Docker
-docker build -t video-opt-env .
-docker run -p 7860:7860 video-opt-env
+docker build -t video-env:latest .
+docker run -p 7860:7860 video-env:latest
 ```
 
+**Inference:**
 ```bash
-# Inference (validator format)
-ENV_URL=http://localhost:7860 \
-API_BASE_URL=https://api.openai.com/v1 \
-API_KEY=your-key \
-python inference.py
+# Against local server
+ENV_URL=http://localhost:7860 python inference.py
+
+# Against HF Space
+ENV_URL=https://saravanabalajisara-ai-video-optimizer-env.hf.space python inference.py
+
+# With scenario config
+python inference.py --scenario scenario_config.json
 ```
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENV_URL` | `http://localhost:7860` | RL environment server URL |
+| `API_BASE_URL` | `https://api.openai.com/v1` | LLM proxy base URL |
+| `API_KEY` | — | LLM API key |
+| `HF_TOKEN` | — | HuggingFace token (fallback for API_KEY) |
+| `OPENAI_API_KEY` | — | OpenAI key (fallback) |
+| `MODEL_NAME` | `gpt-4o-mini` | LLM model identifier |
 
 ---
 

@@ -12,6 +12,13 @@ license: MIT
 server:
   base_url: http://localhost:7860
   docs_url: http://localhost:7860/docs
+  modes:
+    local:
+      command: "uvicorn server.app:app --host 0.0.0.0 --port 7860"
+      description: "No Docker needed. Works on HF Spaces directly."
+    docker:
+      command: "docker run -p 7860:7860 video-env:latest"
+      description: "Full containerized execution."
 
 # ── endpoints ──────────────────────────────────────────────────────────────────
 endpoints:
