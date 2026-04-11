@@ -135,7 +135,7 @@ class AIFeedback(BaseModel):
 
 class TaskDefinition(BaseModel):
     id: str
-    level: Literal["easy", "medium", "hard"]
+    level: Literal["easy", "medium", "hard", "elite"]
     description: str
     expected_behavior: str
     evaluation_criteria: str

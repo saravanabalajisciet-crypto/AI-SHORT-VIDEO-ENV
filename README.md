@@ -98,23 +98,28 @@ This environment models that exact problem as a **sequential decision task with 
 
 - Full OpenEnv spec: `reset()` / `step()` / `state()` / `grader()`
 - 11 typed actions including irreversible `cut_scene` and `finalize_edit`
-- 3 tasks (easy → medium → hard) with multi-seed evaluation for task_3
+- 4 tasks (easy → medium → hard → elite) with multi-seed evaluation for task_3/task_4
 - Dense reward signal with 12 components + efficiency bonus + order penalty
 - Audience personas (gen_z / millennial / brand) assigned per episode
 - Real video dataset: 50 profiles, 30 niches, 7 research sources
 - `steps_remaining` in observation — agent knows its budget
 - Order-sensitive grader — correct action sequence rewarded
 - `raw_score` + `rubric_score` separation for RL training
+- `risk_score` in observation — advisory signal for decision pressure
 - `/hint` endpoint — best next action with reasoning
+- `/strategy` endpoint — full action plan with risk-aware sequencing
 - `/leaderboard` — top scores across all graded episodes
-- `/trajectory` — full action log with per-step metrics
+- `/trajectory` — full action log with decision_quality per step
 - `/efficiency` — step efficiency rating (elite/optimal/good)
 - `/dataset` — real video dataset with research citations
 - `/persona` — current audience persona and scoring weights
+- Simulate mode (`simulate=true` in reset) — safe training without leaderboard writes
+- Grader explanation field — human-readable score reasoning
 - WebSocket endpoint for persistent sessions
 - `VideoOptimizationEnv` client with `from_docker_image()` and context manager
 - `scenario_config.json` with explicit verifiers per task
 - `response_output/` — per-run JSON results saved automatically
+- `test_environment.py` — full pytest suite (60+ tests)
 
 ---
 
@@ -149,8 +154,9 @@ ai-video-optimizer-env/
 | task_1 | Easy | 0.65 | Single seed (42) — remove filler, raise engagement > 0.60 |
 | task_2 | Medium | 0.78 | Single seed (42) — compliance + retention + production quality |
 | task_3 | Hard | 0.90 | **Average across seeds 42, 7, 13** — must generalize, correct order required |
+| task_4 | Elite | 0.95 | **5 seeds × 3 platforms** — no memorization possible, ≤ 8 steps |
 
-task_3 is evaluated as the average score across 3 seeds. A simple heuristic that memorizes seed=42 will fail on seeds 7 and 13.
+task_3 is evaluated as the average score across 3 seeds. task_4 adds multi-platform generalization across reels, shorts, and tiktok — a simple heuristic that memorizes seed=42 will fail.
 
 ---
 
@@ -266,16 +272,17 @@ Call `finalize_edit` to trigger persona-weighted final scoring. Call `/persona` 
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/reset` | Start new episode. Accepts platform, seed. |
+| POST | `/reset` | Start new episode. Accepts platform, seed, simulate flag. |
 | POST | `/step` | Apply one action. Returns state, reward, done, info. |
 | GET | `/state` | Read current state. |
-| GET | `/tasks` | All 3 task definitions with verifiers. |
-| GET | `/grader` | Score with raw_score, rubric_score, task_type. |
-| GET | `/baseline` | Deterministic baseline across all tasks. |
+| GET | `/tasks` | All 4 task definitions (easy → elite). |
+| GET | `/grader` | Score with raw_score, rubric_score, explanation, grader_metadata. |
+| GET | `/baseline` | Deterministic + random agent baseline across all tasks. |
 | GET | `/feedback` | AI coaching tips. |
 | GET | `/hint` | Best next action with reasoning. |
+| GET | `/strategy` | Full action plan with risk-aware sequencing and persona focus. |
 | GET | `/scenarios` | 5 diverse scenario seeds. |
-| GET | `/trajectory` | Full episode action log + order_score. |
+| GET | `/trajectory` | Full episode action log + decision_quality per step. |
 | GET | `/efficiency` | Step efficiency rating. |
 | GET | `/dataset` | Real video dataset metadata + research citations. |
 | GET | `/persona` | Current audience persona + scoring weights. |
