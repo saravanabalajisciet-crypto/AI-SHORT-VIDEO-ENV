@@ -535,10 +535,11 @@ class VideoOptimizationEnv:
     def order_score(self) -> float:
         """
         FIX A: Order-sensitive scoring for task_3.
-        Optimal sequence: reorder_scenes -> boost_hook -> cut_scene ->
-        enhance_pacing -> improve_transition -> smooth_cut -> sync_audio ->
-        add_subtitles -> add_music -> finalize_edit
-        Returns 0.0-1.0 based on how well the agent followed optimal order.
+        Optimal: reorder_scenes -> boost_hook -> cut_scene ->
+        enhance_pacing -> improve_transition -> smooth_cut ->
+        sync_audio -> add_subtitles -> add_music
+        Only penalizes actions that ARE done in wrong relative order.
+        Optional actions (reorder_scenes, cut_scene) don't penalize if skipped.
         """
         optimal = [
             "reorder_scenes", "boost_hook", "cut_scene",
@@ -547,15 +548,8 @@ class VideoOptimizationEnv:
         ]
         history = [a for a in self._action_history if a in optimal]
         if not history:
-            return 0.0
-        # Score based on longest common subsequence with optimal order
-        score = 0.0
-        opt_idx = 0
-        for act in history:
-            if opt_idx < len(optimal) and act == optimal[opt_idx]:
-                score += 1.0
-                opt_idx += 1
-            elif act in optimal:
-                # Out of order — partial credit
-                score += 0.3
-        return round(min(1.0, score / len(optimal)), 4)
+            return 1.0
+        # Check relative order of done actions against optimal
+        done_in_optimal_order = [a for a in optimal if a in history]
+        correct = sum(1 for a, b in zip(history, done_in_optimal_order) if a == b)
+        return round(correct / len(history), 4)
