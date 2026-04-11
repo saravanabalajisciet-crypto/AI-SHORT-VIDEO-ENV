@@ -116,6 +116,9 @@ class GraderResponse(BaseModel):
     score: float
     breakdown: Dict[str, float]
     passed: bool
+    raw_score: float = 0.0        # unmodified weighted score before bonuses
+    rubric_score: float = 0.0     # RL training signal (efficiency-adjusted)
+    task_type: str = "trainable"  # trainable | probe
 
 
 class AIFeedback(BaseModel):

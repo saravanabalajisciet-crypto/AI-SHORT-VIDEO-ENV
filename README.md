@@ -209,13 +209,13 @@ docker build -t video-env:latest .
 docker run -p 7860:7860 video-env:latest
 ```
 
-**Inference:**
+**Mock mode (point at any server — local, Docker, or HF Space):**
 ```bash
-# Against local server
-ENV_URL=http://localhost:7860 python inference.py
-
-# Against HF Space
+# HF Space (no local setup)
 ENV_URL=https://saravanabalajisara-ai-video-optimizer-env.hf.space python inference.py
+
+# Local Docker
+ENV_URL=http://localhost:7860 python inference.py
 
 # With scenario config
 python inference.py --scenario scenario_config.json
@@ -263,3 +263,25 @@ python inference.py --scenario scenario_config.json
 ## License
 
 MIT
+
+---
+
+## Citation
+
+```bibtex
+@misc{ai-video-optimizer-env,
+  author  = {SaravanaBalaji},
+  title   = {AI Short-Form Video Optimization Environment for OpenEnv},
+  year    = {2026},
+  url     = {https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV},
+  note    = {OpenEnv-compatible RL environment for training agents to optimize
+             short-form video content across Instagram Reels, YouTube Shorts,
+             and TikTok. Grounded in public creator analytics research.}
+}
+```
+
+**Data sources cited:**
+- [opus.pro](https://www.opus.pro/blog/tiktok-length-format-retention-data) — 500 TikTok video retention analysis
+- [socialinsider.io](https://www.socialinsider.io/social-media-benchmarks/social-media-video-statistics) — 2025 benchmarks
+- [vidico.com](https://vidico.com/news/instagram-reels-statistics) — Reels algorithm research
+- [dmnews.com](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three) — Viewer drop-off research

@@ -262,11 +262,13 @@ def grader():
 
     obs = state.observation
     order_score = _default_env.order_score()
-    score, breakdown = _compute_score(obs, state.step_count, order_score)
+    score, breakdown, raw_score, rubric_score = _compute_score(obs, state.step_count, order_score)
 
     # Record to leaderboard
     _leaderboard.append({
         "score": score,
+        "raw_score": raw_score,
+        "rubric_score": rubric_score,
         "steps": state.step_count,
         "seed": state.metadata.get("seed", 42),
         "persona": state.metadata.get("audience_persona", "unknown"),
@@ -280,7 +282,19 @@ def grader():
     if len(_leaderboard) > 100:
         _leaderboard.pop(0)
 
-    return GraderResponse(score=score, breakdown=breakdown, passed=score >= 0.875)
+    # Probe vs Trainable (inspired by CARLA's ethical scenario distinction)
+    # Probe: always score 1.0 for RL, but track agent choice as metric
+    # Trainable: reward depends on performance
+    task_type = "trainable"
+
+    return GraderResponse(
+        score=score,
+        breakdown=breakdown,
+        passed=score >= 0.875,
+        raw_score=raw_score,
+        rubric_score=rubric_score,
+        task_type=task_type,
+    )
 
 
 def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
@@ -294,7 +308,7 @@ def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
     cs         = obs.avg_cut_smoothness
     asy        = obs.avg_audio_sync_score
 
-    weighted = (
+    raw = (
         eng        * 0.35 +
         retention  * 0.15 +
         compliance * 0.20 +
@@ -315,14 +329,19 @@ def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
         elif step_count > 13:
             efficiency_bonus = -0.01
 
-    # FIX A: order penalty — if actions were done out of optimal sequence, cap score
     order_penalty = 0.0
     if order_score < 0.5:
-        order_penalty = -0.08   # significant penalty for wrong order
+        order_penalty = -0.08
     elif order_score < 0.8:
-        order_penalty = -0.03   # mild penalty
+        order_penalty = -0.03
 
-    score = round(min(weighted + efficiency_bonus + order_penalty, 1.0), 4)
+    # rubric_score = RL training signal (efficiency + order aware)
+    rubric_score = round(min(raw + efficiency_bonus + order_penalty, 1.0), 4)
+    # raw_score = pure observation quality (no step bonuses)
+    raw_score = round(min(raw, 1.0), 4)
+    # final score = rubric_score (what we report)
+    score = rubric_score
+
     breakdown = {
         "engagement":          round(eng        * 0.35, 4),
         "retention":           round(retention  * 0.15, 4),
@@ -336,9 +355,11 @@ def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
         "efficiency_bonus":    round(efficiency_bonus, 4),
         "order_score":         round(order_score, 4),
         "order_penalty":       round(order_penalty, 4),
+        "raw_score":           raw_score,
+        "rubric_score":        rubric_score,
         "final_score":         score,
     }
-    return score, breakdown
+    return score, breakdown, raw_score, rubric_score
 
 
 # ── /feedback ──────────────────────────────────────────────────────────────────
@@ -575,7 +596,7 @@ def efficiency():
         raise HTTPException(status_code=400, detail=str(e))
 
     obs = state.observation
-    score, breakdown = _compute_score(obs, state.step_count)
+    score, breakdown, raw_score, rubric_score = _compute_score(obs, state.step_count)
     steps_used = state.step_count
     invalid_count = sum(1 for t in _default_trajectory if not t.get("valid", True))
 
@@ -777,7 +798,7 @@ async def websocket_endpoint(websocket: WebSocket):
             elif msg_type == "grader":
                 try:
                     state = ws_env.state
-                    score, breakdown = _compute_score(state.observation, state.step_count)
+                    score, breakdown, raw_score, rubric_score = _compute_score(state.observation, state.step_count)
                     await websocket.send_json({"type": "grader", "score": score,
                                                "breakdown": breakdown, "passed": score >= 0.875})
                 except RuntimeError as e:
