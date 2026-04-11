@@ -193,8 +193,14 @@ def run_episode(task_id: str) -> dict:
         # -- [START] --------------------------------------------------------
         print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
-        # Reset environment
-        state = post("/reset", params={"platform": PLATFORM, "seed": SEED})
+        # Reset environment — retry up to 3 times
+        state = {}
+        for _reset_attempt in range(3):
+            state = post("/reset", params={"platform": PLATFORM, "seed": SEED})
+            if state:
+                break
+            time.sleep(2)
+
         if not state:
             print(f"  [ERROR] /reset returned empty -- skipping {task_id}", flush=True)
             print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
@@ -411,6 +417,7 @@ def main():
                     "steps": 0, "reward": 0.0, "engagement": 0.0, "retention": 0.0,
                 }
             results.append(result)
+            time.sleep(2)  # let environment server settle between tasks
 
         # Summary
         print(f"\n{'='*W}", flush=True)
