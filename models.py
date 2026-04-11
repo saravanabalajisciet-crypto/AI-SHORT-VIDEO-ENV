@@ -90,6 +90,8 @@ class Observation(BaseModel):
     avg_audio_sync_score: float
     # ── FIX B: agent-visible budget ───────────────────────────────────────────
     steps_remaining: int = 15           # how many steps left in episode
+    # ── NEW ADDITION: risk awareness ──────────────────────────────────────────
+    risk_score: Optional[float] = None  # 0.0–1.0, how close to irreversible failure
 
 
 # ── State ──────────────────────────────────────────────────────────────────────
@@ -119,6 +121,8 @@ class GraderResponse(BaseModel):
     raw_score: float = 0.0        # unmodified weighted score before bonuses
     rubric_score: float = 0.0     # RL training signal (efficiency-adjusted)
     task_type: str = "trainable"  # trainable | probe
+    # ── NEW ADDITION: grader metadata for decision-pressure transparency ──────
+    grader_metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AIFeedback(BaseModel):

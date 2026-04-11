@@ -169,10 +169,28 @@ def _pacing_score(scenes):
     return round(min(1.0, base + cs_bonus), 4)
 
 
+# ── NEW ADDITION: risk score ───────────────────────────────────────────────────
+def _compute_risk_score(hook_strength: float, avg_retention: float, pacing_score: float) -> float:
+    """
+    Compute a risk score (0.0–1.0) representing proximity to irreversible failure.
+    Higher = more dangerous. Based on three weak-signal indicators:
+      - low hook_strength  (weight 0.45) — first-impression failure is unrecoverable
+      - low avg_retention  (weight 0.35) — audience already leaving
+      - poor pacing_score  (weight 0.20) — structural incoherence
+    """
+    hook_risk    = max(0.0, 1.0 - hook_strength / 0.6)   # danger zone below 0.6
+    ret_risk     = max(0.0, 1.0 - avg_retention / 0.5)   # danger zone below 0.5
+    pacing_risk  = max(0.0, 1.0 - pacing_score / 0.4)    # danger zone below 0.4
+    risk = hook_risk * 0.45 + ret_risk * 0.35 + pacing_risk * 0.20
+    return round(min(1.0, risk), 4)
+
+
 def _build_observation(scenes, platform, subtitles, music, steps_remaining: int = 15):
     total_dur = _total_duration(scenes)
     rc = _retention_curve(scenes)
     avg_ret = round(sum(rc) / len(rc), 4) if rc else 0.0
+    hook_str = _hook_strength(scenes)
+    pac = _pacing_score(scenes)
     return Observation(
         scenes=scenes,
         total_duration=total_dur,
@@ -185,12 +203,14 @@ def _build_observation(scenes, platform, subtitles, music, steps_remaining: int 
         retention_curve=rc,
         avg_retention=avg_ret,
         watch_time=_watch_time(scenes, rc),
-        hook_strength=_hook_strength(scenes),
-        pacing_score=_pacing_score(scenes),
+        hook_strength=hook_str,
+        pacing_score=pac,
         avg_transition_quality=_avg(scenes, "transition_quality"),
         avg_cut_smoothness=_avg(scenes, "cut_smoothness"),
         avg_audio_sync_score=_avg(scenes, "audio_sync_score"),
         steps_remaining=steps_remaining,
+        # SAFE EXTENSION: risk_score added, defaults to None for old clients
+        risk_score=_compute_risk_score(hook_str, avg_ret, pac),
     )
 
 
@@ -471,6 +491,12 @@ class VideoOptimizationEnv:
                 info["persona"] = self._persona
                 info["persona_score"] = round(persona_score, 4)
                 info["note"] = f"Edit finalized for {self._persona} audience. Irreversible."
+                # SAFE EXTENSION: mark irreversible decision point in metadata
+                self._state.metadata["irreversible_decision_point"] = True
+                self._state.metadata["finalized_at_step"] = self._state.step_count
+                self._state.metadata["finalized_risk_score"] = _compute_risk_score(
+                    obs.hook_strength, obs.avg_retention, obs.pacing_score
+                )
                 # Force episode done after finalize
                 self._state.done = True
 

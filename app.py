@@ -264,6 +264,24 @@ def grader():
     order_score = _default_env.order_score()
     score, breakdown, raw_score, rubric_score = _compute_score(obs, state.step_count, order_score)
 
+    # NEW ADDITION: apply soft caps post-processing (raw_score untouched)
+    from environment import _compute_risk_score
+    risk = getattr(obs, "risk_score", None) or _compute_risk_score(
+        obs.hook_strength, obs.avg_retention, obs.pacing_score
+    )
+    capped_score, cap_applied, cap_reason = _apply_soft_caps(score, obs, state.step_count)
+    score = capped_score
+    breakdown["final_score"] = score
+
+    grader_metadata = {
+        "risk_score": risk,
+        "score_cap_applied": cap_applied,
+        "cap_reason": cap_reason,
+        "irreversible_decision_point": state.metadata.get("irreversible_decision_point", False),
+        "finalized_at_step": state.metadata.get("finalized_at_step", None),
+        "finalized_risk_score": state.metadata.get("finalized_risk_score", None),
+    }
+
     # Record to leaderboard
     _leaderboard.append({
         "score": score,
@@ -294,6 +312,7 @@ def grader():
         raw_score=raw_score,
         rubric_score=rubric_score,
         task_type=task_type,
+        grader_metadata=grader_metadata,
     )
 
 
@@ -360,6 +379,38 @@ def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
         "final_score":         score,
     }
     return score, breakdown, raw_score, rubric_score
+
+
+# ── NEW ADDITION: soft score caps (post-processing only, raw_score untouched) ──
+def _apply_soft_caps(rubric_score: float, obs, step_count: int) -> tuple:
+    """
+    Apply decision-pressure soft caps to rubric_score only.
+    raw_score is NEVER modified. Returns (capped_score, cap_applied, cap_reason).
+    """
+    score = rubric_score
+    cap_applied = False
+    cap_reason = None
+
+    # Cap 1: weak hook after step 3 → ceiling 0.60
+    if step_count > 3 and obs.hook_strength < 0.4:
+        if score > 0.60:
+            score = 0.60
+            cap_applied = True
+            cap_reason = "low_hook_strength"
+
+    # Cap 2: critically low retention → 0.7x multiplier
+    if obs.avg_retention < 0.3:
+        score = round(score * 0.7, 4)
+        cap_applied = True
+        cap_reason = cap_reason or "low_retention"
+
+    # Cap 3: non-compliant at finalize → flat penalty
+    if not obs.platform_compliant:
+        score = round(max(0.0, score - 0.10), 4)
+        cap_applied = True
+        cap_reason = cap_reason or "platform_non_compliant"
+
+    return round(score, 4), cap_applied, cap_reason
 
 
 # ── /feedback ──────────────────────────────────────────────────────────────────

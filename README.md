@@ -363,3 +363,61 @@ MIT
 - [dmnews.com: Video retention research](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three)
 - [OpenEnv Framework](https://github.com/meta-pytorch/OpenEnv)
 - [OpenEnv Rubric RFC 004](https://github.com/meta-pytorch/OpenEnv)
+
+---
+
+## Decision Pressure & Irreversible Optimization
+
+### Risk-Aware Evaluation
+
+Every observation now includes a `risk_score` (0.0–1.0) that signals how close the current state is to an irreversible failure — a state from which no sequence of remaining actions can recover a high score.
+
+```python
+obs = env.reset().observation
+print(obs["risk_score"])   # e.g. 0.72 — high danger
+```
+
+Risk is computed from three weak-signal indicators:
+
+| Signal | Danger threshold | Weight |
+|--------|-----------------|--------|
+| `hook_strength` | < 0.6 | 45% |
+| `avg_retention` | < 0.5 | 35% |
+| `pacing_score` | < 0.4 | 20% |
+
+A `risk_score` above 0.7 means the agent is approaching a point of no return.
+
+### Soft Score Caps
+
+The grader applies post-processing caps to `rubric_score` (the RL training signal) when the agent has made structurally poor decisions. `raw_score` is **never modified**.
+
+| Condition | Effect |
+|-----------|--------|
+| `hook_strength < 0.4` after step 3 | `rubric_score` capped at 0.60 |
+| `avg_retention < 0.3` | `rubric_score` × 0.7 multiplier |
+| `platform_compliant == False` | `rubric_score` − 0.10 |
+
+The `/grader` response now includes a `grader_metadata` block:
+
+```json
+{
+  "grader_metadata": {
+    "risk_score": 0.72,
+    "score_cap_applied": true,
+    "cap_reason": "low_hook_strength",
+    "irreversible_decision_point": false,
+    "finalized_at_step": null,
+    "finalized_risk_score": null
+  }
+}
+```
+
+### Irreversible Decision Point
+
+`finalize_edit` is the only truly irreversible action. When called, the episode metadata records:
+
+- `irreversible_decision_point: true`
+- `finalized_at_step` — which step the agent committed
+- `finalized_risk_score` — the risk level at the moment of commitment
+
+This allows evaluators to distinguish agents that commit confidently at low risk vs. agents that panic-finalize under pressure.
