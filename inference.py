@@ -19,6 +19,7 @@ import sys
 import time
 import json
 import requests
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Config
@@ -481,6 +482,26 @@ def main():
         print(f"  Overall: {'ALL TASKS PASSED' if all_passed else 'SOME TASKS FAILED'}", flush=True)
         print(f"{'='*W}\n", flush=True)
 
+        # Save results to response_output/ folder
+        try:
+            out_dir = Path("response_output")
+            out_dir.mkdir(exist_ok=True)
+            run_id = int(time.time())
+            out_file = out_dir / f"run_{run_id}.json"
+            output = {
+                "run_id": run_id,
+                "model": MODEL_NAME,
+                "env_url": ENV_URL,
+                "llm_api": API_BASE_URL,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "all_passed": all_passed,
+                "results": results,
+            }
+            out_file.write_text(json.dumps(output, indent=2))
+            print(f"  Output saved: {out_file}", flush=True)
+        except Exception as e:
+            print(f"  [WARN] Could not save output: {e}", flush=True)
+
     except Exception as e:
         print(f"\n[FATAL] main() crashed: {e}", flush=True)
         print("[END]   success=false steps=0 score=0.00 rewards=", flush=True)
@@ -489,6 +510,24 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="AI Video Optimizer inference")
+    parser.add_argument("--scenario", default="scenario_config.json",
+                        help="Path to scenario config JSON")
+    args, _ = parser.parse_known_args()
+
+    # Load scenario config if exists
+    try:
+        if Path(args.scenario).exists():
+            cfg = json.loads(Path(args.scenario).read_text())
+            # Override env vars from config if not already set
+            if not os.getenv("MODEL_NAME") and cfg.get("llm_model"):
+                os.environ["MODEL_NAME"] = cfg["llm_model"]
+            if not os.getenv("API_KEY") and cfg.get("llm_api_key") and cfg["llm_api_key"] != "API_KEY or HF_TOKEN env var":
+                os.environ["API_KEY"] = cfg["llm_api_key"]
+    except Exception:
+        pass
+
     try:
         main()
     except Exception as e:

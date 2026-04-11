@@ -1,0 +1,209 @@
+{
+  "environment": "ai-video-optimizer",
+  "version": "6.0.0",
+  "description": "AI Short-Form Video Optimization — scenario definitions with explicit pass/fail criteria",
+  "api_base_url": "ENV_URL env var or http://localhost:7860",
+  "llm_api_key": "API_KEY or HF_TOKEN env var",
+  "llm_model": "MODEL_NAME env var (default: gpt-4o-mini)",
+  "platform": "reels",
+
+  "scenarios": [
+    {
+      "id": "task_1",
+      "name": "Engagement Rescue",
+      "level": "easy",
+      "seed": 42,
+      "platform": "reels",
+      "description": "Remove low-engagement filler scenes to raise average engagement above 0.60.",
+      "max_steps": 15,
+      "target_score": 0.65,
+      "verifiers": [
+        {
+          "metric": "current_engagement_score",
+          "operator": ">=",
+          "threshold": 0.60,
+          "description": "Average engagement must be at least 0.60"
+        },
+        {
+          "metric": "platform_compliant",
+          "operator": "==",
+          "threshold": true,
+          "description": "Video must be within platform duration limit (30s for reels)"
+        },
+        {
+          "metric": "grader_score",
+          "operator": ">=",
+          "threshold": 0.65,
+          "description": "Weighted grader score must reach 0.65"
+        }
+      ],
+      "expected_actions": ["cut_scene", "add_subtitles", "add_music", "boost_hook"],
+      "hints": [
+        "Cut scenes with engagement_score < 0.30 and scene_type in (filler, transition)",
+        "Keep at least 3 scenes",
+        "Add subtitles and music for engagement lift"
+      ]
+    },
+    {
+      "id": "task_2",
+      "name": "Platform Compliance + Retention",
+      "level": "medium",
+      "seed": 42,
+      "platform": "reels",
+      "description": "Achieve platform compliance, subtitles, avg_retention >= 0.55, and production quality.",
+      "max_steps": 15,
+      "target_score": 0.78,
+      "verifiers": [
+        {
+          "metric": "platform_compliant",
+          "operator": "==",
+          "threshold": true,
+          "description": "total_duration must be <= 30s for reels"
+        },
+        {
+          "metric": "subtitles_present",
+          "operator": "==",
+          "threshold": true,
+          "description": "Subtitles must be added"
+        },
+        {
+          "metric": "avg_retention",
+          "operator": ">=",
+          "threshold": 0.55,
+          "description": "Average viewer retention must be >= 0.55"
+        },
+        {
+          "metric": "current_engagement_score",
+          "operator": ">=",
+          "threshold": 0.65,
+          "description": "Engagement must reach 0.65"
+        },
+        {
+          "metric": "grader_score",
+          "operator": ">=",
+          "threshold": 0.78,
+          "description": "Weighted grader score must reach 0.78"
+        }
+      ],
+      "expected_actions": [
+        "boost_hook", "cut_scene", "trim_duration", "enhance_pacing",
+        "improve_transition", "smooth_cut", "sync_audio", "add_subtitles", "add_music"
+      ],
+      "hints": [
+        "Trim duration if total_duration > 30s",
+        "Add subtitles for +0.10 grader score",
+        "Call improve_transition, smooth_cut, sync_audio for production quality"
+      ]
+    },
+    {
+      "id": "task_3",
+      "name": "Full Viral Optimization",
+      "level": "hard",
+      "seeds": [42, 7, 13],
+      "platform": "reels",
+      "description": "Full viral optimization across 3 seeds. Correct action order required. Must generalize.",
+      "max_steps": 15,
+      "target_score": 0.90,
+      "evaluation": "average_across_seeds",
+      "verifiers": [
+        {
+          "metric": "current_engagement_score",
+          "operator": ">=",
+          "threshold": 0.82,
+          "description": "Engagement must reach 0.82"
+        },
+        {
+          "metric": "avg_retention",
+          "operator": ">=",
+          "threshold": 0.92,
+          "description": "Retention must reach 0.92"
+        },
+        {
+          "metric": "hook_strength",
+          "operator": ">=",
+          "threshold": 0.75,
+          "description": "Hook strength must reach 0.75"
+        },
+        {
+          "metric": "avg_transition_quality",
+          "operator": ">=",
+          "threshold": 0.72,
+          "description": "Transition quality must reach 0.72"
+        },
+        {
+          "metric": "platform_compliant",
+          "operator": "==",
+          "threshold": true,
+          "description": "Must be platform compliant"
+        },
+        {
+          "metric": "subtitles_present",
+          "operator": "==",
+          "threshold": true,
+          "description": "Subtitles must be present"
+        },
+        {
+          "metric": "grader_score",
+          "operator": ">=",
+          "threshold": 0.90,
+          "description": "Average grader score across seeds 42, 7, 13 must reach 0.90"
+        },
+        {
+          "metric": "order_score",
+          "operator": ">=",
+          "threshold": 0.80,
+          "description": "Actions must follow optimal sequence: reorder->boost->cut->pace->transition->cut->audio->subtitles->music"
+        }
+      ],
+      "expected_actions": [
+        "reorder_scenes", "boost_hook", "cut_scene", "enhance_pacing",
+        "improve_transition", "smooth_cut", "sync_audio", "add_subtitles", "add_music"
+      ],
+      "optimal_order": [
+        "reorder_scenes", "boost_hook", "cut_scene",
+        "enhance_pacing", "improve_transition", "smooth_cut",
+        "sync_audio", "add_subtitles", "add_music"
+      ],
+      "hints": [
+        "Order matters — reorder_scenes BEFORE boost_hook",
+        "Cut filler scenes AFTER boosting hook",
+        "Production quality actions (transition/cut/audio) BEFORE subtitles/music",
+        "Must work across seeds 42, 7, and 13 — no seed memorization"
+      ]
+    }
+  ],
+
+  "grader_formula": {
+    "description": "Weighted sum of observation metrics",
+    "weights": {
+      "engagement": 0.35,
+      "retention": 0.15,
+      "platform_compliance": 0.20,
+      "subtitles": 0.10,
+      "hook_strength": 0.10,
+      "pacing": 0.05,
+      "transition_quality": 0.03,
+      "cut_smoothness": 0.01,
+      "audio_sync": 0.01
+    },
+    "bonuses": {
+      "efficiency_7_steps": 0.02,
+      "efficiency_10_steps": 0.01,
+      "over_editing_penalty": -0.01
+    }
+  },
+
+  "action_space": [
+    {"name": "cut_scene",          "params": {"scene_id": "str"}, "reversible": false},
+    {"name": "reorder_scenes",     "params": {"order": "[str]"},  "reversible": true},
+    {"name": "boost_hook",         "params": {},                  "reversible": false, "one_time": true},
+    {"name": "trim_duration",      "params": {"target_seconds": "float"}, "reversible": false},
+    {"name": "enhance_pacing",     "params": {},                  "reversible": false, "one_time": true},
+    {"name": "improve_transition", "params": {},                  "reversible": false, "one_time": true},
+    {"name": "smooth_cut",         "params": {},                  "reversible": false, "one_time": true},
+    {"name": "sync_audio",         "params": {},                  "reversible": false, "one_time": true},
+    {"name": "add_subtitles",      "params": {},                  "reversible": false, "one_time": true},
+    {"name": "add_music",          "params": {},                  "reversible": false, "one_time": true},
+    {"name": "finalize_edit",      "params": {},                  "reversible": false, "irreversible_episode_end": true}
+  ]
+}
