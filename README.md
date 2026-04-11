@@ -12,9 +12,53 @@ pinned: false
 
 > The only OpenEnv environment that trains AI agents to do what **50 million creators do every day** — edit short-form videos for maximum viral reach — grounded in real engagement data, with irreversible decisions, audience-aware scoring, and multi-platform evaluation.
 
----
+## Quick Start
 
-## Why This Matters
+```python
+from client import VideoOptimizationEnv, VideoAction
+
+# Connect to HF Space (no setup needed)
+env = VideoOptimizationEnv.from_hf_space()
+result = env.reset(platform="reels", seed=42)
+print(result.engagement)   # 0.536
+print(result.steps_remaining)  # 15
+
+# Apply actions
+result = env.step(VideoAction("boost_hook"))
+print(result.reward)       # 0.67
+print(result.engagement)   # 0.751
+
+# Get hint for next action
+hint = env.hint()
+print(hint["best_action"]) # "enhance_pacing"
+print(hint["reason"])
+
+# Grade the current state
+score = env.grade()
+print(score["score"])      # 0.87
+
+# Finalize for persona-weighted bonus
+result = env.step(VideoAction("finalize_edit"))
+print(result.info["persona"])       # "gen_z"
+print(result.info["persona_score"]) # 0.95
+env.close()
+```
+
+```python
+# Auto-start Docker container
+with VideoOptimizationEnv.from_docker_image("video-env:latest") as env:
+    result = env.reset(platform="reels", seed=42)
+    result = env.step(VideoAction("boost_hook"))
+    print(env.grade()["score"])
+# Container auto-stopped on exit
+```
+
+```python
+# Connect to local server
+env = VideoOptimizationEnv("http://localhost:7860")
+```
+
+---
 
 The creator economy is a **$250 billion industry**. Every day, 50 million creators on Instagram Reels, YouTube Shorts, and TikTok face the same hard problem: given raw footage, make editorial decisions that maximize reach.
 

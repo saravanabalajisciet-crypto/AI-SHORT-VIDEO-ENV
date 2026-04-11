@@ -1,160 +1,375 @@
 """
-Baseline agent client — runs against the live API server.
+client.py — VideoOptimizationEnv client library.
 
-Usage:
-    python client.py [--host http://localhost:8000] [--platform reels|shorts|tiktok] [--seed 42]
+Provides a clean Python interface to the AI Short-Form Video Optimization
+environment, mirroring the OpenEnv standard interface.
+
+Quick Start:
+    from client import VideoOptimizationEnv, VideoAction
+
+    # From Docker image (auto-starts container)
+    with VideoOptimizationEnv.from_docker_image("video-env:latest") as env:
+        result = env.reset(platform="reels", seed=42)
+        print(result.observation["current_engagement_score"])
+
+        result = env.step(VideoAction(action_type="boost_hook"))
+        print(result.reward)
+
+    # From running server
+    env = VideoOptimizationEnv(base_url="http://localhost:7860")
+    result = env.reset(platform="reels", seed=42)
 """
-import argparse
+
+from __future__ import annotations
+
+import subprocess
+import time
+import socket
+import os
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 import requests
 
 
-def run(host: str, platform: str, seed: int) -> None:
-    base = host.rstrip("/")
+# ---------------------------------------------------------------------------
+# Data models
+# ---------------------------------------------------------------------------
 
-    # ── reset ──────────────────────────────────────────────────────────────────
-    state = requests.post(f"{base}/reset", params={"platform": platform, "seed": seed}).json()
-    obs   = state["observation"]
+@dataclass
+class VideoAction:
+    """Action to apply to the environment."""
+    action_type: str
+    parameters: Dict[str, Any] = field(default_factory=dict)
 
-    W = 70
-    print(f"\n{'═'*W}")
-    print(f"  AI Short-Form Video Optimization  ·  v4.0")
-    print(f"{'═'*W}")
-    print(f"  episode  : {state['episode_id']}")
-    print(f"  platform : {obs['platform']}   seed: {seed}")
-    print(f"  scenes   : {len(obs['scenes'])}   duration: {obs['total_duration']}s")
-    print(f"  engagement   : {obs['current_engagement_score']:.4f}")
-    print(f"  retention    : {obs['avg_retention']:.4f}   watch_time: {obs['watch_time']:.1f}s")
-    print(f"  hook_strength: {obs['hook_strength']:.4f}   pacing: {obs['pacing_score']:.4f}")
-    print(f"  transition_q : {obs['avg_transition_quality']:.4f}   cut_smooth: {obs['avg_cut_smoothness']:.4f}   audio_sync: {obs['avg_audio_sync_score']:.4f}")
-    print(f"  hook_first   : {obs['hook_first']}   compliant: {obs['platform_compliant']}")
+    def to_dict(self) -> dict:
+        return {"action_type": self.action_type, "parameters": self.parameters}
+
+
+@dataclass
+class StepResult:
+    """Result returned by reset() and step()."""
+    observation: Dict[str, Any]
+    reward: float
+    done: bool
+    info: Dict[str, Any]
+    state: Dict[str, Any]
+
+    @property
+    def engagement(self) -> float:
+        return self.observation.get("current_engagement_score", 0.0)
+
+    @property
+    def retention(self) -> float:
+        return self.observation.get("avg_retention", 0.0)
+
+    @property
+    def hook_strength(self) -> float:
+        return self.observation.get("hook_strength", 0.0)
+
+    @property
+    def steps_remaining(self) -> int:
+        return self.observation.get("steps_remaining", 0)
+
+
+# ---------------------------------------------------------------------------
+# Client
+# ---------------------------------------------------------------------------
+
+class VideoOptimizationEnv:
+    """
+    Python client for the AI Short-Form Video Optimization environment.
+
+    Supports two connection modes:
+    1. from_docker_image() — auto-starts a Docker container
+    2. Direct instantiation — connects to a running server
+
+    Example:
+        # Auto-start Docker
+        env = VideoOptimizationEnv.from_docker_image("video-env:latest")
+
+        # Connect to HF Space
+        env = VideoOptimizationEnv("https://saravanabalajisara-ai-video-optimizer-env.hf.space")
+
+        # Connect to local server
+        env = VideoOptimizationEnv("http://localhost:7860")
+    """
+
+    DEFAULT_HF_URL = "https://saravanabalajisara-ai-video-optimizer-env.hf.space"
+
+    def __init__(self, base_url: str = DEFAULT_HF_URL, timeout: int = 30):
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+        self._container_id: Optional[str] = None
+        self._owns_container = False
+
+    # ── factory methods ────────────────────────────────────────────────────────
+
+    @classmethod
+    def from_docker_image(
+        cls,
+        image: str = "video-env:latest",
+        port: int = 7860,
+        timeout: int = 60,
+    ) -> "VideoOptimizationEnv":
+        """
+        Start a Docker container and return a connected client.
+
+        Args:
+            image:   Docker image name (default: video-env:latest)
+            port:    Host port to bind (default: 7860)
+            timeout: Seconds to wait for server ready (default: 60)
+
+        Example:
+            env = VideoOptimizationEnv.from_docker_image("video-env:latest")
+        """
+        # Find a free port if default is taken
+        host_port = port
+        with socket.socket() as s:
+            if s.connect_ex(("localhost", port)) == 0:
+                host_port = port + 1
+
+        result = subprocess.run(
+            ["docker", "run", "-d", "-p", f"{host_port}:7860", image],
+            capture_output=True, text=True, check=True,
+        )
+        container_id = result.stdout.strip()
+
+        env = cls(base_url=f"http://localhost:{host_port}", timeout=timeout)
+        env._container_id = container_id
+        env._owns_container = True
+
+        # Wait for server to be ready
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                r = requests.get(f"{env.base_url}/health", timeout=3)
+                if r.status_code == 200:
+                    return env
+            except Exception:
+                pass
+            time.sleep(1)
+
+        env.close()
+        raise TimeoutError(f"Server did not start within {timeout}s")
+
+    @classmethod
+    def from_hf_space(cls, timeout: int = 30) -> "VideoOptimizationEnv":
+        """Connect to the live HF Space deployment."""
+        return cls(base_url=cls.DEFAULT_HF_URL, timeout=timeout)
+
+    # ── core API ───────────────────────────────────────────────────────────────
+
+    def reset(
+        self,
+        platform: str = "reels",
+        seed: int = 42,
+    ) -> StepResult:
+        """
+        Start a new episode.
+
+        Args:
+            platform: reels | shorts | tiktok
+            seed:     RNG seed for reproducibility
+
+        Returns:
+            StepResult with initial observation
+        """
+        r = requests.post(
+            f"{self.base_url}/reset",
+            params={"platform": platform, "seed": seed},
+            timeout=self.timeout,
+        )
+        r.raise_for_status()
+        state = r.json()
+        return StepResult(
+            observation=state.get("observation", {}),
+            reward=0.0,
+            done=state.get("done", False),
+            info={"reset": True, "seed": seed, "platform": platform},
+            state=state,
+        )
+
+    def step(self, action: VideoAction) -> StepResult:
+        """
+        Apply one action to the environment.
+
+        Args:
+            action: VideoAction with action_type and optional parameters
+
+        Returns:
+            StepResult with new observation, reward, done, info
+        """
+        r = requests.post(
+            f"{self.base_url}/step",
+            json=action.to_dict(),
+            timeout=self.timeout,
+        )
+        r.raise_for_status()
+        resp = r.json()
+        state = resp.get("state", {})
+        return StepResult(
+            observation=state.get("observation", {}),
+            reward=resp.get("reward", 0.0),
+            done=resp.get("done", False),
+            info=resp.get("info", {}),
+            state=state,
+        )
+
+    def state(self) -> StepResult:
+        """Read current state without advancing the episode."""
+        r = requests.get(f"{self.base_url}/state", timeout=self.timeout)
+        r.raise_for_status()
+        s = r.json()
+        return StepResult(
+            observation=s.get("observation", {}),
+            reward=0.0,
+            done=s.get("done", False),
+            info={},
+            state=s,
+        )
+
+    def grade(self) -> Dict[str, Any]:
+        """Score the current state. Returns score, breakdown, passed."""
+        r = requests.get(f"{self.base_url}/grader", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def hint(self) -> Dict[str, Any]:
+        """Get the best next action suggestion."""
+        r = requests.get(f"{self.base_url}/hint", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def feedback(self) -> Dict[str, Any]:
+        """Get AI coaching tips for the current state."""
+        r = requests.get(f"{self.base_url}/feedback", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def tasks(self) -> List[Dict[str, Any]]:
+        """Return all task definitions."""
+        r = requests.get(f"{self.base_url}/tasks", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def persona(self) -> Dict[str, Any]:
+        """Return current episode audience persona and scoring weights."""
+        r = requests.get(f"{self.base_url}/persona", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def trajectory(self) -> Dict[str, Any]:
+        """Return full action trajectory of current episode."""
+        r = requests.get(f"{self.base_url}/trajectory", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def leaderboard(self) -> Dict[str, Any]:
+        """Return top scores across all graded episodes."""
+        r = requests.get(f"{self.base_url}/leaderboard", timeout=self.timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def health(self) -> bool:
+        """Check if the server is healthy."""
+        try:
+            r = requests.get(f"{self.base_url}/health", timeout=5)
+            return r.status_code == 200
+        except Exception:
+            return False
+
+    # ── context manager ────────────────────────────────────────────────────────
+
+    def __enter__(self) -> "VideoOptimizationEnv":
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """Stop the Docker container if we started it."""
+        if self._owns_container and self._container_id:
+            try:
+                subprocess.run(
+                    ["docker", "stop", self._container_id],
+                    capture_output=True, timeout=10,
+                )
+                subprocess.run(
+                    ["docker", "rm", self._container_id],
+                    capture_output=True, timeout=10,
+                )
+            except Exception:
+                pass
+            self._container_id = None
+
+    def __repr__(self) -> str:
+        return f"VideoOptimizationEnv(base_url={self.base_url!r})"
+
+
+# ---------------------------------------------------------------------------
+# CLI — python client.py
+# ---------------------------------------------------------------------------
+
+def _run_cli(host: str, platform: str, seed: int) -> None:
+    env = VideoOptimizationEnv(base_url=host)
+    W = 68
+
+    print(f"\n{'='*W}")
+    print(f"  AI Short-Form Video Optimization  v6.0")
+    print(f"  {host}  platform={platform}  seed={seed}")
+    print(f"{'='*W}")
+
+    result = env.reset(platform=platform, seed=seed)
+    obs = result.observation
+    print(f"  Initial  eng={obs.get('current_engagement_score',0):.3f}  "
+          f"ret={obs.get('avg_retention',0):.3f}  "
+          f"dur={obs.get('total_duration',0):.1f}s  "
+          f"scenes={len(obs.get('scenes',[]))}  "
+          f"persona={result.state.get('metadata',{}).get('audience_persona','?')}")
     print(f"{'─'*W}")
 
-    done     = False
-    step_num = 0
+    actions = [
+        VideoAction("boost_hook"),
+        VideoAction("enhance_pacing"),
+        VideoAction("improve_transition"),
+        VideoAction("smooth_cut"),
+        VideoAction("sync_audio"),
+        VideoAction("add_subtitles"),
+        VideoAction("add_music"),
+    ]
 
-    def do_step(action_type: str, parameters: dict = None):
-        nonlocal state, done, step_num
-        if done:
-            return
-        payload = {"action_type": action_type, "parameters": parameters or {}}
-        resp    = requests.post(f"{base}/step", json=payload).json()
-        state   = resp["state"]
-        done    = resp["done"]
-        step_num += 1
-        o   = state["observation"]
-        tag = "✓" if resp["info"].get("valid", True) else "✗"
-        print(
-            f"  step {step_num:02d} {tag} | {action_type:<20s} | "
-            f"r={resp['reward']:+.3f} | "
-            f"eng={o['current_engagement_score']:.3f} | "
-            f"ret={o['avg_retention']:.3f} | "
-            f"tq={o['avg_transition_quality']:.3f} | "
-            f"cs={o['avg_cut_smoothness']:.3f} | "
-            f"as={o['avg_audio_sync_score']:.3f}"
-        )
-        if not resp["info"].get("valid", True):
-            print(f"           ↳ {resp['info'].get('reason', '')}")
-
-    obs = state["observation"]
-
-    # ── baseline strategy ──────────────────────────────────────────────────────
-    # 1. Reorder: best hook scene first
-    hook_candidates = [s for s in obs["scenes"]
-                       if s["scene_type"] in ("hook", "highlight") and s["has_hook"]]
-    if hook_candidates:
-        best_hook = max(hook_candidates, key=lambda s: s["hook_strength"])
-        if obs["scenes"][0]["id"] != best_hook["id"]:
-            new_order = [best_hook["id"]] + [s["id"] for s in obs["scenes"] if s["id"] != best_hook["id"]]
-            do_step("reorder_scenes", {"order": new_order})
-
-    # 2. Boost hook
-    do_step("boost_hook")
-
-    # 3. Cut filler/transition < 0.30, keep >= 3 scenes
-    for scene in sorted(
-        [s for s in state["observation"]["scenes"]
-         if s["engagement_score"] < 0.30 and s["scene_type"] in ("filler", "transition")],
-        key=lambda s: s["engagement_score"],
-    ):
-        if len(state["observation"]["scenes"]) <= 3:
+    for action in actions:
+        if result.done:
             break
-        do_step("cut_scene", {"scene_id": scene["id"]})
+        result = env.step(action)
+        o = result.observation
+        tag = "OK" if result.info.get("valid", True) else "!!"
+        print(f"  {tag} | {action.action_type:<20s} | "
+              f"r={result.reward:+.3f} | "
+              f"eng={o.get('current_engagement_score',0):.3f} | "
+              f"ret={o.get('avg_retention',0):.3f} | "
+              f"steps_left={o.get('steps_remaining',0)}")
 
-    # 4. Trim duration if needed
-    limit = 30.0 if platform == "reels" else 60.0
-    if state["observation"]["total_duration"] > limit:
-        do_step("trim_duration", {"target_seconds": limit})
-
-    # 5. Enhance pacing
-    do_step("enhance_pacing")
-
-    # 6. Improve transition quality if below 0.70
-    if state["observation"]["avg_transition_quality"] < 0.70:
-        do_step("improve_transition")
-
-    # 7. Smooth cuts if below 0.70
-    if state["observation"]["avg_cut_smoothness"] < 0.70:
-        do_step("smooth_cut")
-
-    # 8. Sync audio if below 0.70
-    if state["observation"]["avg_audio_sync_score"] < 0.70:
-        do_step("sync_audio")
-
-    # 9. Add subtitles
-    if not state["observation"]["subtitles_present"]:
-        do_step("add_subtitles")
-
-    # 10. Add music
-    do_step("add_music")
-
-    # ── grader ─────────────────────────────────────────────────────────────────
-    grader = requests.get(f"{base}/grader").json()
+    grader = env.grade()
     print(f"\n{'─'*W}")
-    print(f"  GRADER SCORE : {grader['score']:.4f}  {'✅ PASSED' if grader['passed'] else '❌ NOT PASSED'}")
-    for k, v in grader["breakdown"].items():
-        bar = "█" * int(v * 40)
-        print(f"    {k:<25s}: {v:.4f}  {bar}")
+    print(f"  SCORE: {grader['score']:.4f}  {'PASSED' if grader['passed'] else 'FAILED'}")
+    for k, v in grader.get("breakdown", {}).items():
+        if k != "final_score":
+            print(f"    {k:<25s}: {float(v):.4f}")
 
-    # ── AI feedback ────────────────────────────────────────────────────────────
-    fb = requests.get(f"{base}/feedback").json()
-    print(f"\n{'─'*W}")
-    print(f"  AI FEEDBACK")
-    print(f"  {fb['overall']}")
-    if fb["tips"]:
-        for tip in fb["tips"]:
-            print(f"  • {tip}")
-    else:
-        print("  • No further improvements needed.")
-
-    # ── tasks ──────────────────────────────────────────────────────────────────
-    tasks = requests.get(f"{base}/tasks").json()
-    print(f"\n{'─'*W}")
-    print(f"  TASKS")
-    for t in tasks:
-        status = "✅ PASS" if grader["score"] >= t["target_score"] else "❌ FAIL"
-        print(f"  [{t['level'].upper():6s}] {t['id']}  target={t['target_score']}  {status}")
-
-    # ── baseline endpoint ──────────────────────────────────────────────────────
-    print(f"\n{'─'*W}")
-    print(f"  /baseline — all tasks (seed=42)")
-    results = requests.get(f"{base}/baseline").json()
-    for r in results:
-        status = "✅" if r["passed"] else "❌"
-        print(
-            f"  {status} {r['task_id']} | score={r['score']:.4f} | "
-            f"eng={r['final_engagement']:.3f} | ret={r['final_retention']:.3f} | "
-            f"tq={r['avg_transition_quality']:.3f} | cs={r['avg_cut_smoothness']:.3f} | "
-            f"as={r['avg_audio_sync_score']:.3f} | steps={r['steps']}"
-        )
-        print(f"       {r['feedback']['overall']}")
-
-    print(f"\n{'═'*W}\n")
+    fb = env.feedback()
+    print(f"\n  {fb.get('overall','')}")
+    for tip in fb.get("tips", [])[:3]:
+        print(f"  - {tip}")
+    print(f"{'='*W}\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host",     default="http://localhost:8000")
+    import argparse
+    parser = argparse.ArgumentParser(description="AI Video Optimizer client")
+    parser.add_argument("--host",     default="http://localhost:7860")
     parser.add_argument("--platform", default="reels", choices=["reels", "shorts", "tiktok"])
     parser.add_argument("--seed",     default=42, type=int)
     args = parser.parse_args()
-    run(args.host, args.platform, args.seed)
+    _run_cli(args.host, args.platform, args.seed)
