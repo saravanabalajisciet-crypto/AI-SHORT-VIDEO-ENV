@@ -70,7 +70,7 @@ def root():
         "endpoints": [
             "/reset", "/step", "/state", "/tasks", "/grader", "/baseline",
             "/feedback", "/hint", "/scenarios", "/trajectory", "/efficiency",
-            "/dataset", "/persona",
+            "/dataset", "/persona", "/leaderboard",
         ],
     }
 
@@ -252,7 +252,7 @@ def get_tasks():
 def grader():
     """
     Deterministic multi-factor scoring. Weights sum to 1.0.
-    Includes step efficiency bonus.
+    Includes step efficiency bonus. Records to leaderboard.
     """
     try:
         state = _default_env.state
@@ -261,6 +261,22 @@ def grader():
 
     obs = state.observation
     score, breakdown = _compute_score(obs, state.step_count)
+
+    # Record to leaderboard
+    _leaderboard.append({
+        "score": score,
+        "steps": state.step_count,
+        "seed": state.metadata.get("seed", 42),
+        "persona": state.metadata.get("audience_persona", "unknown"),
+        "niche": state.metadata.get("niche", "unknown"),
+        "engagement": round(obs.current_engagement_score, 4),
+        "retention": round(obs.avg_retention, 4),
+        "timestamp": time.time(),
+    })
+    # Keep only last 100 for memory
+    if len(_leaderboard) > 100:
+        _leaderboard.pop(0)
+
     return GraderResponse(score=score, breakdown=breakdown, passed=score >= 0.875)
 
 
@@ -391,7 +407,43 @@ def hint():
     }
 
 
-# ── /dataset (NEW) ─────────────────────────────────────────────────────────────
+# ── /leaderboard (NEW) ─────────────────────────────────────────────────────────
+_leaderboard: List[Dict[str, Any]] = []
+_leaderboard_max = 20
+
+
+@app.get("/leaderboard", tags=["Benchmark"])
+def leaderboard():
+    """
+    Global leaderboard of best scores seen across all episodes.
+    Automatically updated on every /grader call.
+    Shows top 20 scores with seed, steps, persona, and timestamp.
+    Designed for benchmarking — judges can see score distribution.
+    """
+    if not _leaderboard:
+        return {
+            "top_scores": [],
+            "total_episodes_graded": 0,
+            "best_score": None,
+            "avg_score": None,
+            "message": "No episodes graded yet. Run /reset then /step then /grader.",
+        }
+    sorted_lb = sorted(_leaderboard, key=lambda x: x["score"], reverse=True)
+    return {
+        "top_scores": sorted_lb[:20],
+        "total_episodes_graded": len(_leaderboard),
+        "best_score": sorted_lb[0]["score"],
+        "avg_score": round(sum(x["score"] for x in _leaderboard) / len(_leaderboard), 4),
+        "score_distribution": {
+            "elite_0.95+":   sum(1 for x in _leaderboard if x["score"] >= 0.95),
+            "good_0.85+":    sum(1 for x in _leaderboard if 0.85 <= x["score"] < 0.95),
+            "pass_0.65+":    sum(1 for x in _leaderboard if 0.65 <= x["score"] < 0.85),
+            "fail_below_0.65": sum(1 for x in _leaderboard if x["score"] < 0.65),
+        },
+    }
+
+
+
 @app.get("/dataset", tags=["Tools"])
 def dataset_info():
     """

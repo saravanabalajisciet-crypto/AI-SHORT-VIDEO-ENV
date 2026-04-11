@@ -3,114 +3,2784 @@
   "source": "Aggregated from public creator analytics reports, platform documentation, and video editing research papers.",
   "videos": [
     {
-      "id": "v001", "platform": "reels", "niche": "fitness",
+      "id": "v001",
+      "platform": "reels",
+      "niche": "fitness",
       "scenes": [
-        {"type": "hook",       "duration": 3.2, "engagement": 0.82, "has_hook": true,  "hook_strength": 0.78, "transition_quality": 0.81, "cut_smoothness": 0.76, "audio_sync": 0.80},
-        {"type": "content",    "duration": 7.1, "engagement": 0.61, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.55, "cut_smoothness": 0.58, "audio_sync": 0.62},
-        {"type": "highlight",  "duration": 4.8, "engagement": 0.74, "has_hook": true,  "hook_strength": 0.52, "transition_quality": 0.68, "cut_smoothness": 0.71, "audio_sync": 0.69},
-        {"type": "filler",     "duration": 4.2, "engagement": 0.18, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.22, "cut_smoothness": 0.19, "audio_sync": 0.24},
-        {"type": "cta",        "duration": 2.8, "engagement": 0.55, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.61, "cut_smoothness": 0.58, "audio_sync": 0.60}
+        {
+          "type": "hook",
+          "duration": 3.2,
+          "engagement": 0.82,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.8
+        },
+        {
+          "type": "content",
+          "duration": 7.1,
+          "engagement": 0.61,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.55,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.62
+        },
+        {
+          "type": "highlight",
+          "duration": 4.8,
+          "engagement": 0.74,
+          "has_hook": true,
+          "hook_strength": 0.52,
+          "transition_quality": 0.68,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.69
+        },
+        {
+          "type": "filler",
+          "duration": 4.2,
+          "engagement": 0.18,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.22,
+          "cut_smoothness": 0.19,
+          "audio_sync": 0.24
+        },
+        {
+          "type": "cta",
+          "duration": 2.8,
+          "engagement": 0.55,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.61,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.6
+        }
       ],
-      "viral": false, "final_engagement": 0.58, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
     },
     {
-      "id": "v002", "platform": "reels", "niche": "cooking",
+      "id": "v002",
+      "platform": "reels",
+      "niche": "cooking",
       "scenes": [
-        {"type": "transition", "duration": 1.5, "engagement": 0.12, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.28, "cut_smoothness": 0.31, "audio_sync": 0.25},
-        {"type": "hook",       "duration": 4.1, "engagement": 0.79, "has_hook": true,  "hook_strength": 0.71, "transition_quality": 0.74, "cut_smoothness": 0.72, "audio_sync": 0.78},
-        {"type": "content",    "duration": 8.3, "engagement": 0.54, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.48, "cut_smoothness": 0.51, "audio_sync": 0.55},
-        {"type": "content",    "duration": 6.9, "engagement": 0.49, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.44, "cut_smoothness": 0.47, "audio_sync": 0.50},
-        {"type": "cta",        "duration": 3.1, "engagement": 0.62, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.65, "cut_smoothness": 0.63, "audio_sync": 0.67}
+        {
+          "type": "transition",
+          "duration": 1.5,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.28,
+          "cut_smoothness": 0.31,
+          "audio_sync": 0.25
+        },
+        {
+          "type": "hook",
+          "duration": 4.1,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.71,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.72,
+          "audio_sync": 0.78
+        },
+        {
+          "type": "content",
+          "duration": 8.3,
+          "engagement": 0.54,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.48,
+          "cut_smoothness": 0.51,
+          "audio_sync": 0.55
+        },
+        {
+          "type": "content",
+          "duration": 6.9,
+          "engagement": 0.49,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.44,
+          "cut_smoothness": 0.47,
+          "audio_sync": 0.5
+        },
+        {
+          "type": "cta",
+          "duration": 3.1,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.67
+        }
       ],
-      "viral": false, "final_engagement": 0.51, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.51,
+      "platform_compliant": true
     },
     {
-      "id": "v003", "platform": "tiktok", "niche": "comedy",
+      "id": "v003",
+      "platform": "tiktok",
+      "niche": "comedy",
       "scenes": [
-        {"type": "hook",       "duration": 2.8, "engagement": 0.91, "has_hook": true,  "hook_strength": 0.88, "transition_quality": 0.85, "cut_smoothness": 0.83, "audio_sync": 0.89},
-        {"type": "highlight",  "duration": 5.2, "engagement": 0.83, "has_hook": true,  "hook_strength": 0.61, "transition_quality": 0.79, "cut_smoothness": 0.77, "audio_sync": 0.81},
-        {"type": "content",    "duration": 7.4, "engagement": 0.72, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.68, "cut_smoothness": 0.70, "audio_sync": 0.71},
-        {"type": "cta",        "duration": 2.5, "engagement": 0.68, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.72, "cut_smoothness": 0.69, "audio_sync": 0.74}
+        {
+          "type": "hook",
+          "duration": 2.8,
+          "engagement": 0.91,
+          "has_hook": true,
+          "hook_strength": 0.88,
+          "transition_quality": 0.85,
+          "cut_smoothness": 0.83,
+          "audio_sync": 0.89
+        },
+        {
+          "type": "highlight",
+          "duration": 5.2,
+          "engagement": 0.83,
+          "has_hook": true,
+          "hook_strength": 0.61,
+          "transition_quality": 0.79,
+          "cut_smoothness": 0.77,
+          "audio_sync": 0.81
+        },
+        {
+          "type": "content",
+          "duration": 7.4,
+          "engagement": 0.72,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.68,
+          "cut_smoothness": 0.7,
+          "audio_sync": 0.71
+        },
+        {
+          "type": "cta",
+          "duration": 2.5,
+          "engagement": 0.68,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.69,
+          "audio_sync": 0.74
+        }
       ],
-      "viral": true, "final_engagement": 0.79, "platform_compliant": true
+      "viral": true,
+      "final_engagement": 0.79,
+      "platform_compliant": true
     },
     {
-      "id": "v004", "platform": "shorts", "niche": "education",
+      "id": "v004",
+      "platform": "shorts",
+      "niche": "education",
       "scenes": [
-        {"type": "content",    "duration": 9.1, "engagement": 0.38, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.35, "cut_smoothness": 0.38, "audio_sync": 0.40},
-        {"type": "hook",       "duration": 3.9, "engagement": 0.76, "has_hook": true,  "hook_strength": 0.68, "transition_quality": 0.71, "cut_smoothness": 0.69, "audio_sync": 0.73},
-        {"type": "filler",     "duration": 5.1, "engagement": 0.09, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.14, "cut_smoothness": 0.11, "audio_sync": 0.16},
-        {"type": "content",    "duration": 8.8, "engagement": 0.45, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.41, "cut_smoothness": 0.44, "audio_sync": 0.46},
-        {"type": "transition", "duration": 1.8, "engagement": 0.15, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.21, "cut_smoothness": 0.18, "audio_sync": 0.22},
-        {"type": "cta",        "duration": 3.4, "engagement": 0.58, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.62, "cut_smoothness": 0.59, "audio_sync": 0.64}
+        {
+          "type": "content",
+          "duration": 9.1,
+          "engagement": 0.38,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.35,
+          "cut_smoothness": 0.38,
+          "audio_sync": 0.4
+        },
+        {
+          "type": "hook",
+          "duration": 3.9,
+          "engagement": 0.76,
+          "has_hook": true,
+          "hook_strength": 0.68,
+          "transition_quality": 0.71,
+          "cut_smoothness": 0.69,
+          "audio_sync": 0.73
+        },
+        {
+          "type": "filler",
+          "duration": 5.1,
+          "engagement": 0.09,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.14,
+          "cut_smoothness": 0.11,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "content",
+          "duration": 8.8,
+          "engagement": 0.45,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.41,
+          "cut_smoothness": 0.44,
+          "audio_sync": 0.46
+        },
+        {
+          "type": "transition",
+          "duration": 1.8,
+          "engagement": 0.15,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.21,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.22
+        },
+        {
+          "type": "cta",
+          "duration": 3.4,
+          "engagement": 0.58,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.62,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.64
+        }
       ],
-      "viral": false, "final_engagement": 0.40, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.4,
+      "platform_compliant": true
     },
     {
-      "id": "v005", "platform": "reels", "niche": "fashion",
+      "id": "v005",
+      "platform": "reels",
+      "niche": "fashion",
       "scenes": [
-        {"type": "hook",       "duration": 3.5, "engagement": 0.85, "has_hook": true,  "hook_strength": 0.82, "transition_quality": 0.84, "cut_smoothness": 0.81, "audio_sync": 0.86},
-        {"type": "highlight",  "duration": 4.6, "engagement": 0.77, "has_hook": true,  "hook_strength": 0.58, "transition_quality": 0.75, "cut_smoothness": 0.73, "audio_sync": 0.77},
-        {"type": "content",    "duration": 6.2, "engagement": 0.63, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.59, "cut_smoothness": 0.61, "audio_sync": 0.63},
-        {"type": "content",    "duration": 5.8, "engagement": 0.58, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.54, "cut_smoothness": 0.57, "audio_sync": 0.59},
-        {"type": "cta",        "duration": 2.9, "engagement": 0.71, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.74, "cut_smoothness": 0.72, "audio_sync": 0.75}
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.85,
+          "has_hook": true,
+          "hook_strength": 0.82,
+          "transition_quality": 0.84,
+          "cut_smoothness": 0.81,
+          "audio_sync": 0.86
+        },
+        {
+          "type": "highlight",
+          "duration": 4.6,
+          "engagement": 0.77,
+          "has_hook": true,
+          "hook_strength": 0.58,
+          "transition_quality": 0.75,
+          "cut_smoothness": 0.73,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "content",
+          "duration": 6.2,
+          "engagement": 0.63,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.59,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.63
+        },
+        {
+          "type": "content",
+          "duration": 5.8,
+          "engagement": 0.58,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.54,
+          "cut_smoothness": 0.57,
+          "audio_sync": 0.59
+        },
+        {
+          "type": "cta",
+          "duration": 2.9,
+          "engagement": 0.71,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.72,
+          "audio_sync": 0.75
+        }
       ],
-      "viral": true, "final_engagement": 0.71, "platform_compliant": true
+      "viral": true,
+      "final_engagement": 0.71,
+      "platform_compliant": true
     },
     {
-      "id": "v006", "platform": "tiktok", "niche": "travel",
+      "id": "v006",
+      "platform": "tiktok",
+      "niche": "travel",
       "scenes": [
-        {"type": "filler",     "duration": 4.8, "engagement": 0.07, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.12, "cut_smoothness": 0.09, "audio_sync": 0.14},
-        {"type": "transition", "duration": 2.1, "engagement": 0.11, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.19, "cut_smoothness": 0.16, "audio_sync": 0.20},
-        {"type": "hook",       "duration": 3.7, "engagement": 0.80, "has_hook": true,  "hook_strength": 0.74, "transition_quality": 0.77, "cut_smoothness": 0.75, "audio_sync": 0.79},
-        {"type": "content",    "duration": 7.9, "engagement": 0.56, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.52, "cut_smoothness": 0.55, "audio_sync": 0.57},
-        {"type": "highlight",  "duration": 5.3, "engagement": 0.69, "has_hook": true,  "hook_strength": 0.48, "transition_quality": 0.65, "cut_smoothness": 0.67, "audio_sync": 0.68}
+        {
+          "type": "filler",
+          "duration": 4.8,
+          "engagement": 0.07,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.12,
+          "cut_smoothness": 0.09,
+          "audio_sync": 0.14
+        },
+        {
+          "type": "transition",
+          "duration": 2.1,
+          "engagement": 0.11,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.19,
+          "cut_smoothness": 0.16,
+          "audio_sync": 0.2
+        },
+        {
+          "type": "hook",
+          "duration": 3.7,
+          "engagement": 0.8,
+          "has_hook": true,
+          "hook_strength": 0.74,
+          "transition_quality": 0.77,
+          "cut_smoothness": 0.75,
+          "audio_sync": 0.79
+        },
+        {
+          "type": "content",
+          "duration": 7.9,
+          "engagement": 0.56,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.52,
+          "cut_smoothness": 0.55,
+          "audio_sync": 0.57
+        },
+        {
+          "type": "highlight",
+          "duration": 5.3,
+          "engagement": 0.69,
+          "has_hook": true,
+          "hook_strength": 0.48,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.67,
+          "audio_sync": 0.68
+        }
       ],
-      "viral": false, "final_engagement": 0.45, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.45,
+      "platform_compliant": true
     },
     {
-      "id": "v007", "platform": "reels", "niche": "tech",
+      "id": "v007",
+      "platform": "reels",
+      "niche": "tech",
       "scenes": [
-        {"type": "hook",       "duration": 4.2, "engagement": 0.73, "has_hook": true,  "hook_strength": 0.65, "transition_quality": 0.69, "cut_smoothness": 0.67, "audio_sync": 0.71},
-        {"type": "content",    "duration": 9.4, "engagement": 0.42, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.38, "cut_smoothness": 0.41, "audio_sync": 0.43},
-        {"type": "filler",     "duration": 3.6, "engagement": 0.13, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.17, "cut_smoothness": 0.14, "audio_sync": 0.18},
-        {"type": "content",    "duration": 7.2, "engagement": 0.47, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.43, "cut_smoothness": 0.46, "audio_sync": 0.48},
-        {"type": "cta",        "duration": 2.6, "engagement": 0.60, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.63, "cut_smoothness": 0.61, "audio_sync": 0.65}
+        {
+          "type": "hook",
+          "duration": 4.2,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.65,
+          "transition_quality": 0.69,
+          "cut_smoothness": 0.67,
+          "audio_sync": 0.71
+        },
+        {
+          "type": "content",
+          "duration": 9.4,
+          "engagement": 0.42,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.38,
+          "cut_smoothness": 0.41,
+          "audio_sync": 0.43
+        },
+        {
+          "type": "filler",
+          "duration": 3.6,
+          "engagement": 0.13,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.18
+        },
+        {
+          "type": "content",
+          "duration": 7.2,
+          "engagement": 0.47,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.43,
+          "cut_smoothness": 0.46,
+          "audio_sync": 0.48
+        },
+        {
+          "type": "cta",
+          "duration": 2.6,
+          "engagement": 0.6,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.63,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.65
+        }
       ],
-      "viral": false, "final_engagement": 0.47, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.47,
+      "platform_compliant": true
     },
     {
-      "id": "v008", "platform": "shorts", "niche": "gaming",
+      "id": "v008",
+      "platform": "shorts",
+      "niche": "gaming",
       "scenes": [
-        {"type": "hook",       "duration": 3.1, "engagement": 0.88, "has_hook": true,  "hook_strength": 0.84, "transition_quality": 0.82, "cut_smoothness": 0.80, "audio_sync": 0.85},
-        {"type": "highlight",  "duration": 6.4, "engagement": 0.81, "has_hook": true,  "hook_strength": 0.63, "transition_quality": 0.77, "cut_smoothness": 0.75, "audio_sync": 0.79},
-        {"type": "content",    "duration": 8.7, "engagement": 0.65, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.61, "cut_smoothness": 0.63, "audio_sync": 0.65},
-        {"type": "transition", "duration": 1.9, "engagement": 0.22, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.28, "cut_smoothness": 0.25, "audio_sync": 0.29},
-        {"type": "cta",        "duration": 3.3, "engagement": 0.72, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.75, "cut_smoothness": 0.73, "audio_sync": 0.76}
+        {
+          "type": "hook",
+          "duration": 3.1,
+          "engagement": 0.88,
+          "has_hook": true,
+          "hook_strength": 0.84,
+          "transition_quality": 0.82,
+          "cut_smoothness": 0.8,
+          "audio_sync": 0.85
+        },
+        {
+          "type": "highlight",
+          "duration": 6.4,
+          "engagement": 0.81,
+          "has_hook": true,
+          "hook_strength": 0.63,
+          "transition_quality": 0.77,
+          "cut_smoothness": 0.75,
+          "audio_sync": 0.79
+        },
+        {
+          "type": "content",
+          "duration": 8.7,
+          "engagement": 0.65,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.61,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.65
+        },
+        {
+          "type": "transition",
+          "duration": 1.9,
+          "engagement": 0.22,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.28,
+          "cut_smoothness": 0.25,
+          "audio_sync": 0.29
+        },
+        {
+          "type": "cta",
+          "duration": 3.3,
+          "engagement": 0.72,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.75,
+          "cut_smoothness": 0.73,
+          "audio_sync": 0.76
+        }
       ],
-      "viral": true, "final_engagement": 0.66, "platform_compliant": true
+      "viral": true,
+      "final_engagement": 0.66,
+      "platform_compliant": true
     },
     {
-      "id": "v009", "platform": "reels", "niche": "beauty",
+      "id": "v009",
+      "platform": "reels",
+      "niche": "beauty",
       "scenes": [
-        {"type": "content",    "duration": 6.8, "engagement": 0.44, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.40, "cut_smoothness": 0.43, "audio_sync": 0.45},
-        {"type": "filler",     "duration": 5.5, "engagement": 0.06, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.10, "cut_smoothness": 0.07, "audio_sync": 0.12},
-        {"type": "hook",       "duration": 3.8, "engagement": 0.83, "has_hook": true,  "hook_strength": 0.77, "transition_quality": 0.80, "cut_smoothness": 0.78, "audio_sync": 0.82},
-        {"type": "highlight",  "duration": 4.9, "engagement": 0.70, "has_hook": true,  "hook_strength": 0.51, "transition_quality": 0.66, "cut_smoothness": 0.68, "audio_sync": 0.69},
-        {"type": "cta",        "duration": 2.7, "engagement": 0.64, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.67, "cut_smoothness": 0.65, "audio_sync": 0.69}
+        {
+          "type": "content",
+          "duration": 6.8,
+          "engagement": 0.44,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.4,
+          "cut_smoothness": 0.43,
+          "audio_sync": 0.45
+        },
+        {
+          "type": "filler",
+          "duration": 5.5,
+          "engagement": 0.06,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.07,
+          "audio_sync": 0.12
+        },
+        {
+          "type": "hook",
+          "duration": 3.8,
+          "engagement": 0.83,
+          "has_hook": true,
+          "hook_strength": 0.77,
+          "transition_quality": 0.8,
+          "cut_smoothness": 0.78,
+          "audio_sync": 0.82
+        },
+        {
+          "type": "highlight",
+          "duration": 4.9,
+          "engagement": 0.7,
+          "has_hook": true,
+          "hook_strength": 0.51,
+          "transition_quality": 0.66,
+          "cut_smoothness": 0.68,
+          "audio_sync": 0.69
+        },
+        {
+          "type": "cta",
+          "duration": 2.7,
+          "engagement": 0.64,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.67,
+          "cut_smoothness": 0.65,
+          "audio_sync": 0.69
+        }
       ],
-      "viral": false, "final_engagement": 0.53, "platform_compliant": true
+      "viral": false,
+      "final_engagement": 0.53,
+      "platform_compliant": true
     },
     {
-      "id": "v010", "platform": "tiktok", "niche": "motivation",
+      "id": "v010",
+      "platform": "tiktok",
+      "niche": "motivation",
       "scenes": [
-        {"type": "hook",       "duration": 2.9, "engagement": 0.92, "has_hook": true,  "hook_strength": 0.89, "transition_quality": 0.87, "cut_smoothness": 0.85, "audio_sync": 0.90},
-        {"type": "content",    "duration": 6.1, "engagement": 0.78, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.74, "cut_smoothness": 0.76, "audio_sync": 0.77},
-        {"type": "highlight",  "duration": 5.7, "engagement": 0.84, "has_hook": true,  "hook_strength": 0.66, "transition_quality": 0.81, "cut_smoothness": 0.79, "audio_sync": 0.83},
-        {"type": "content",    "duration": 7.3, "engagement": 0.69, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.65, "cut_smoothness": 0.67, "audio_sync": 0.68},
-        {"type": "cta",        "duration": 3.0, "engagement": 0.75, "has_hook": false, "hook_strength": 0.0,  "transition_quality": 0.78, "cut_smoothness": 0.76, "audio_sync": 0.79}
+        {
+          "type": "hook",
+          "duration": 2.9,
+          "engagement": 0.92,
+          "has_hook": true,
+          "hook_strength": 0.89,
+          "transition_quality": 0.87,
+          "cut_smoothness": 0.85,
+          "audio_sync": 0.9
+        },
+        {
+          "type": "content",
+          "duration": 6.1,
+          "engagement": 0.78,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "highlight",
+          "duration": 5.7,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.66,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.79,
+          "audio_sync": 0.83
+        },
+        {
+          "type": "content",
+          "duration": 7.3,
+          "engagement": 0.69,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.67,
+          "audio_sync": 0.68
+        },
+        {
+          "type": "cta",
+          "duration": 3.0,
+          "engagement": 0.75,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.79
+        }
       ],
-      "viral": true, "final_engagement": 0.80, "platform_compliant": true
+      "viral": true,
+      "final_engagement": 0.8,
+      "platform_compliant": true
+    },
+    {
+      "id": "v011",
+      "platform": "reels",
+      "niche": "finance",
+      "scenes": [
+        {
+          "type": "filler",
+          "duration": 5.3,
+          "engagement": 0.18,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.14,
+          "cut_smoothness": 0.17,
+          "audio_sync": 0.18
+        },
+        {
+          "type": "cta",
+          "duration": 2.7,
+          "engagement": 0.58,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.62,
+          "cut_smoothness": 0.51,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "hook",
+          "duration": 3.7,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.84,
+          "transition_quality": 0.84,
+          "cut_smoothness": 0.82,
+          "audio_sync": 0.83
+        },
+        {
+          "type": "content",
+          "duration": 9.7,
+          "engagement": 0.59,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.54,
+          "audio_sync": 0.63
+        },
+        {
+          "type": "transition",
+          "duration": 2.5,
+          "engagement": 0.24,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.21,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.23
+        },
+        {
+          "type": "highlight",
+          "duration": 4.4,
+          "engagement": 0.63,
+          "has_hook": true,
+          "hook_strength": 0.53,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.66
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v012",
+      "platform": "reels",
+      "niche": "parenting",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 3.5,
+          "engagement": 0.71,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.52,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.67
+        },
+        {
+          "type": "content",
+          "duration": 8.3,
+          "engagement": 0.55,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.55,
+          "cut_smoothness": 0.48,
+          "audio_sync": 0.57
+        },
+        {
+          "type": "hook",
+          "duration": 4.6,
+          "engagement": 0.76,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.77,
+          "audio_sync": 0.81
+        },
+        {
+          "type": "transition",
+          "duration": 1.9,
+          "engagement": 0.15,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.21,
+          "cut_smoothness": 0.16,
+          "audio_sync": 0.22
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.54,
+      "platform_compliant": true
+    },
+    {
+      "id": "v013",
+      "platform": "reels",
+      "niche": "pets",
+      "scenes": [
+        {
+          "type": "transition",
+          "duration": 1.1,
+          "engagement": 0.25,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.12,
+          "cut_smoothness": 0.13,
+          "audio_sync": 0.22
+        },
+        {
+          "type": "filler",
+          "duration": 4.1,
+          "engagement": 0.06,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.18,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.15
+        },
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.8,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.86,
+          "cut_smoothness": 0.74,
+          "audio_sync": 0.72
+        },
+        {
+          "type": "content",
+          "duration": 7.2,
+          "engagement": 0.36,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.57,
+          "cut_smoothness": 0.46,
+          "audio_sync": 0.42
+        },
+        {
+          "type": "cta",
+          "duration": 2.4,
+          "engagement": 0.48,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.51
+        },
+        {
+          "type": "highlight",
+          "duration": 5.1,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.63,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.77,
+          "audio_sync": 0.69
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.45,
+      "platform_compliant": true
+    },
+    {
+      "id": "v014",
+      "platform": "shorts",
+      "niche": "sports",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.9,
+          "engagement": 0.75,
+          "has_hook": true,
+          "hook_strength": 0.81,
+          "transition_quality": 0.85,
+          "cut_smoothness": 0.86,
+          "audio_sync": 0.74
+        },
+        {
+          "type": "filler",
+          "duration": 4.5,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.1,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "content",
+          "duration": 9.2,
+          "engagement": 0.52,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.61,
+          "cut_smoothness": 0.56,
+          "audio_sync": 0.4
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v015",
+      "platform": "tiktok",
+      "niche": "music",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 2.6,
+          "engagement": 0.47,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.47,
+          "cut_smoothness": 0.69,
+          "audio_sync": 0.64
+        },
+        {
+          "type": "filler",
+          "duration": 5.2,
+          "engagement": 0.15,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.15
+        },
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.84,
+          "audio_sync": 0.77
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.47,
+      "platform_compliant": true
+    },
+    {
+      "id": "v016",
+      "platform": "reels",
+      "niche": "art",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 2.6,
+          "engagement": 0.48,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.49,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.45
+        },
+        {
+          "type": "content",
+          "duration": 7.3,
+          "engagement": 0.32,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.44,
+          "cut_smoothness": 0.53,
+          "audio_sync": 0.57
+        },
+        {
+          "type": "hook",
+          "duration": 3.1,
+          "engagement": 0.82,
+          "has_hook": true,
+          "hook_strength": 0.8,
+          "transition_quality": 0.79,
+          "cut_smoothness": 0.72,
+          "audio_sync": 0.76
+        },
+        {
+          "type": "highlight",
+          "duration": 5.5,
+          "engagement": 0.69,
+          "has_hook": true,
+          "hook_strength": 0.66,
+          "transition_quality": 0.76,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "transition",
+          "duration": 1.9,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.23,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.26
+        },
+        {
+          "type": "filler",
+          "duration": 3.4,
+          "engagement": 0.05,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.12,
+          "cut_smoothness": 0.2,
+          "audio_sync": 0.12
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.41,
+      "platform_compliant": true
+    },
+    {
+      "id": "v017",
+      "platform": "reels",
+      "niche": "diy",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.3,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.72,
+          "transition_quality": 0.77,
+          "cut_smoothness": 0.86,
+          "audio_sync": 0.79
+        },
+        {
+          "type": "cta",
+          "duration": 2.2,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.71,
+          "cut_smoothness": 0.68,
+          "audio_sync": 0.7
+        },
+        {
+          "type": "highlight",
+          "duration": 4.8,
+          "engagement": 0.58,
+          "has_hook": true,
+          "hook_strength": 0.57,
+          "transition_quality": 0.69,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.69
+        },
+        {
+          "type": "transition",
+          "duration": 1.6,
+          "engagement": 0.27,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.22,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.2
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
+    },
+    {
+      "id": "v018",
+      "platform": "reels",
+      "niche": "news",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.1,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.8,
+          "transition_quality": 0.73,
+          "cut_smoothness": 0.81,
+          "audio_sync": 0.75
+        },
+        {
+          "type": "highlight",
+          "duration": 6.8,
+          "engagement": 0.62,
+          "has_hook": true,
+          "hook_strength": 0.64,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.66,
+          "audio_sync": 0.59
+        },
+        {
+          "type": "filler",
+          "duration": 4.2,
+          "engagement": 0.1,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.14,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.19
+        },
+        {
+          "type": "cta",
+          "duration": 3.6,
+          "engagement": 0.49,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.68,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.53
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.5,
+      "platform_compliant": true
+    },
+    {
+      "id": "v019",
+      "platform": "shorts",
+      "niche": "lifestyle",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 3.7,
+          "engagement": 0.48,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.49,
+          "audio_sync": 0.54
+        },
+        {
+          "type": "content",
+          "duration": 8.8,
+          "engagement": 0.59,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.42,
+          "cut_smoothness": 0.42,
+          "audio_sync": 0.45
+        },
+        {
+          "type": "highlight",
+          "duration": 5.8,
+          "engagement": 0.62,
+          "has_hook": true,
+          "hook_strength": 0.6,
+          "transition_quality": 0.66,
+          "cut_smoothness": 0.62,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "hook",
+          "duration": 4.8,
+          "engagement": 0.87,
+          "has_hook": true,
+          "hook_strength": 0.85,
+          "transition_quality": 0.85,
+          "cut_smoothness": 0.81,
+          "audio_sync": 0.77
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.64,
+      "platform_compliant": true
+    },
+    {
+      "id": "v020",
+      "platform": "tiktok",
+      "niche": "health",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.4,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.87,
+          "transition_quality": 0.82,
+          "cut_smoothness": 0.75,
+          "audio_sync": 0.84
+        },
+        {
+          "type": "content",
+          "duration": 9.1,
+          "engagement": 0.54,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.53,
+          "cut_smoothness": 0.65,
+          "audio_sync": 0.61
+        },
+        {
+          "type": "transition",
+          "duration": 1.3,
+          "engagement": 0.23,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.24,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.13
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.54,
+      "platform_compliant": true
+    },
+    {
+      "id": "v021",
+      "platform": "reels",
+      "niche": "crypto",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 2.3,
+          "engagement": 0.61,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.48,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.68
+        },
+        {
+          "type": "content",
+          "duration": 8.7,
+          "engagement": 0.64,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.47,
+          "cut_smoothness": 0.48,
+          "audio_sync": 0.59
+        },
+        {
+          "type": "transition",
+          "duration": 1.8,
+          "engagement": 0.24,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.12,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.13
+        },
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.8,
+          "has_hook": true,
+          "hook_strength": 0.86,
+          "transition_quality": 0.73,
+          "cut_smoothness": 0.85,
+          "audio_sync": 0.73
+        },
+        {
+          "type": "filler",
+          "duration": 4.3,
+          "engagement": 0.14,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.11,
+          "audio_sync": 0.17
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v022",
+      "platform": "reels",
+      "niche": "startup",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.1,
+          "engagement": 0.74,
+          "has_hook": true,
+          "hook_strength": 0.83,
+          "transition_quality": 0.77,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.85
+        },
+        {
+          "type": "content",
+          "duration": 8.3,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.47
+        },
+        {
+          "type": "highlight",
+          "duration": 5.1,
+          "engagement": 0.77,
+          "has_hook": true,
+          "hook_strength": 0.6,
+          "transition_quality": 0.68,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "cta",
+          "duration": 3.0,
+          "engagement": 0.71,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.61,
+          "cut_smoothness": 0.51,
+          "audio_sync": 0.57
+        },
+        {
+          "type": "transition",
+          "duration": 1.5,
+          "engagement": 0.1,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.22,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.16
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.59,
+      "platform_compliant": true
+    },
+    {
+      "id": "v023",
+      "platform": "reels",
+      "niche": "dating",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.1,
+          "engagement": 0.83,
+          "has_hook": true,
+          "hook_strength": 0.85,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.82,
+          "audio_sync": 0.81
+        },
+        {
+          "type": "transition",
+          "duration": 2.0,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.2,
+          "cut_smoothness": 0.22,
+          "audio_sync": 0.22
+        },
+        {
+          "type": "highlight",
+          "duration": 5.6,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.52,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.62,
+          "audio_sync": 0.57
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
+    },
+    {
+      "id": "v024",
+      "platform": "shorts",
+      "niche": "food",
+      "scenes": [
+        {
+          "type": "transition",
+          "duration": 1.0,
+          "engagement": 0.16,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "filler",
+          "duration": 4.4,
+          "engagement": 0.06,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.17
+        },
+        {
+          "type": "hook",
+          "duration": 3.8,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.82,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "highlight",
+          "duration": 5.2,
+          "engagement": 0.61,
+          "has_hook": true,
+          "hook_strength": 0.53,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.73
+        },
+        {
+          "type": "cta",
+          "duration": 3.2,
+          "engagement": 0.66,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.57
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.46,
+      "platform_compliant": true
+    },
+    {
+      "id": "v025",
+      "platform": "tiktok",
+      "niche": "nature",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.0,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.87,
+          "transition_quality": 0.84,
+          "cut_smoothness": 0.87,
+          "audio_sync": 0.84
+        },
+        {
+          "type": "content",
+          "duration": 8.6,
+          "engagement": 0.59,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "highlight",
+          "duration": 5.1,
+          "engagement": 0.77,
+          "has_hook": true,
+          "hook_strength": 0.65,
+          "transition_quality": 0.59,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.67
+        },
+        {
+          "type": "filler",
+          "duration": 4.8,
+          "engagement": 0.2,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.2,
+          "audio_sync": 0.2
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.6,
+      "platform_compliant": true
+    },
+    {
+      "id": "v026",
+      "platform": "reels",
+      "niche": "science",
+      "scenes": [
+        {
+          "type": "highlight",
+          "duration": 4.7,
+          "engagement": 0.68,
+          "has_hook": true,
+          "hook_strength": 0.66,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.66,
+          "audio_sync": 0.73
+        },
+        {
+          "type": "transition",
+          "duration": 1.3,
+          "engagement": 0.24,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.13,
+          "audio_sync": 0.14
+        },
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.86,
+          "has_hook": true,
+          "hook_strength": 0.75,
+          "transition_quality": 0.71,
+          "cut_smoothness": 0.86,
+          "audio_sync": 0.84
+        },
+        {
+          "type": "content",
+          "duration": 7.0,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.41,
+          "audio_sync": 0.49
+        },
+        {
+          "type": "filler",
+          "duration": 3.5,
+          "engagement": 0.11,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.19,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "cta",
+          "duration": 3.5,
+          "engagement": 0.55,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.63,
+          "cut_smoothness": 0.52,
+          "audio_sync": 0.46
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.51,
+      "platform_compliant": true
+    },
+    {
+      "id": "v027",
+      "platform": "reels",
+      "niche": "history",
+      "scenes": [
+        {
+          "type": "transition",
+          "duration": 1.6,
+          "engagement": 0.11,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.15,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.23
+        },
+        {
+          "type": "filler",
+          "duration": 4.4,
+          "engagement": 0.18,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.09,
+          "cut_smoothness": 0.09,
+          "audio_sync": 0.1
+        },
+        {
+          "type": "highlight",
+          "duration": 6.5,
+          "engagement": 0.71,
+          "has_hook": true,
+          "hook_strength": 0.5,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.75
+        },
+        {
+          "type": "hook",
+          "duration": 4.9,
+          "engagement": 0.81,
+          "has_hook": true,
+          "hook_strength": 0.84,
+          "transition_quality": 0.77,
+          "cut_smoothness": 0.79,
+          "audio_sync": 0.77
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.45,
+      "platform_compliant": true
+    },
+    {
+      "id": "v028",
+      "platform": "reels",
+      "niche": "politics",
+      "scenes": [
+        {
+          "type": "content",
+          "duration": 6.6,
+          "engagement": 0.33,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.47
+        },
+        {
+          "type": "hook",
+          "duration": 4.4,
+          "engagement": 0.85,
+          "has_hook": true,
+          "hook_strength": 0.82,
+          "transition_quality": 0.76,
+          "cut_smoothness": 0.82,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "filler",
+          "duration": 4.3,
+          "engagement": 0.15,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.09,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.12
+        },
+        {
+          "type": "transition",
+          "duration": 1.2,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.21,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.19
+        },
+        {
+          "type": "highlight",
+          "duration": 5.7,
+          "engagement": 0.58,
+          "has_hook": true,
+          "hook_strength": 0.48,
+          "transition_quality": 0.67,
+          "cut_smoothness": 0.7,
+          "audio_sync": 0.65
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.41,
+      "platform_compliant": true
+    },
+    {
+      "id": "v029",
+      "platform": "shorts",
+      "niche": "cars",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.7,
+          "engagement": 0.8,
+          "has_hook": true,
+          "hook_strength": 0.85,
+          "transition_quality": 0.86,
+          "cut_smoothness": 0.81,
+          "audio_sync": 0.86
+        },
+        {
+          "type": "content",
+          "duration": 7.7,
+          "engagement": 0.49,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.59,
+          "cut_smoothness": 0.49,
+          "audio_sync": 0.48
+        },
+        {
+          "type": "highlight",
+          "duration": 6.9,
+          "engagement": 0.72,
+          "has_hook": true,
+          "hook_strength": 0.66,
+          "transition_quality": 0.63,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.71
+        },
+        {
+          "type": "transition",
+          "duration": 1.9,
+          "engagement": 0.27,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.25,
+          "cut_smoothness": 0.24,
+          "audio_sync": 0.17
+        },
+        {
+          "type": "filler",
+          "duration": 5.7,
+          "engagement": 0.06,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.2,
+          "audio_sync": 0.13
+        },
+        {
+          "type": "cta",
+          "duration": 2.0,
+          "engagement": 0.61,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.66,
+          "cut_smoothness": 0.72,
+          "audio_sync": 0.63
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v030",
+      "platform": "tiktok",
+      "niche": "architecture",
+      "scenes": [
+        {
+          "type": "content",
+          "duration": 8.6,
+          "engagement": 0.46,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.46,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.61
+        },
+        {
+          "type": "highlight",
+          "duration": 4.5,
+          "engagement": 0.57,
+          "has_hook": true,
+          "hook_strength": 0.67,
+          "transition_quality": 0.69,
+          "cut_smoothness": 0.7,
+          "audio_sync": 0.67
+        },
+        {
+          "type": "cta",
+          "duration": 2.4,
+          "engagement": 0.66,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.66,
+          "cut_smoothness": 0.49,
+          "audio_sync": 0.52
+        },
+        {
+          "type": "hook",
+          "duration": 3.3,
+          "engagement": 0.87,
+          "has_hook": true,
+          "hook_strength": 0.8,
+          "transition_quality": 0.75,
+          "cut_smoothness": 0.85,
+          "audio_sync": 0.76
+        },
+        {
+          "type": "transition",
+          "duration": 2.1,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.15,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.17
+        },
+        {
+          "type": "filler",
+          "duration": 3.2,
+          "engagement": 0.17,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.09,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.11
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v031",
+      "platform": "reels",
+      "niche": "fitness",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.9,
+          "engagement": 0.85,
+          "has_hook": true,
+          "hook_strength": 0.73,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.83
+        },
+        {
+          "type": "transition",
+          "duration": 1.8,
+          "engagement": 0.28,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.24,
+          "cut_smoothness": 0.25,
+          "audio_sync": 0.21
+        },
+        {
+          "type": "content",
+          "duration": 7.8,
+          "engagement": 0.48,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.38,
+          "cut_smoothness": 0.6,
+          "audio_sync": 0.63
+        },
+        {
+          "type": "highlight",
+          "duration": 5.2,
+          "engagement": 0.8,
+          "has_hook": true,
+          "hook_strength": 0.46,
+          "transition_quality": 0.75,
+          "cut_smoothness": 0.73,
+          "audio_sync": 0.75
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.6,
+      "platform_compliant": true
+    },
+    {
+      "id": "v032",
+      "platform": "reels",
+      "niche": "cooking",
+      "scenes": [
+        {
+          "type": "highlight",
+          "duration": 7.0,
+          "engagement": 0.59,
+          "has_hook": true,
+          "hook_strength": 0.52,
+          "transition_quality": 0.75,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "hook",
+          "duration": 4.3,
+          "engagement": 0.76,
+          "has_hook": true,
+          "hook_strength": 0.77,
+          "transition_quality": 0.82,
+          "cut_smoothness": 0.85,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "transition",
+          "duration": 2.3,
+          "engagement": 0.24,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.14,
+          "cut_smoothness": 0.22,
+          "audio_sync": 0.12
+        },
+        {
+          "type": "filler",
+          "duration": 3.7,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.12,
+          "cut_smoothness": 0.1,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "cta",
+          "duration": 3.2,
+          "engagement": 0.57,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.64,
+          "cut_smoothness": 0.57,
+          "audio_sync": 0.51
+        },
+        {
+          "type": "content",
+          "duration": 10.0,
+          "engagement": 0.34,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.44,
+          "cut_smoothness": 0.48,
+          "audio_sync": 0.56
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.45,
+      "platform_compliant": false
+    },
+    {
+      "id": "v033",
+      "platform": "reels",
+      "niche": "comedy",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.0,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.79,
+          "transition_quality": 0.86,
+          "cut_smoothness": 0.81,
+          "audio_sync": 0.77
+        },
+        {
+          "type": "content",
+          "duration": 8.2,
+          "engagement": 0.33,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.48,
+          "audio_sync": 0.5
+        },
+        {
+          "type": "transition",
+          "duration": 1.1,
+          "engagement": 0.16,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.23,
+          "cut_smoothness": 0.22,
+          "audio_sync": 0.15
+        },
+        {
+          "type": "highlight",
+          "duration": 6.6,
+          "engagement": 0.58,
+          "has_hook": true,
+          "hook_strength": 0.6,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.7
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.48,
+      "platform_compliant": true
+    },
+    {
+      "id": "v034",
+      "platform": "shorts",
+      "niche": "education",
+      "scenes": [
+        {
+          "type": "content",
+          "duration": 8.7,
+          "engagement": 0.44,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.4,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.64
+        },
+        {
+          "type": "cta",
+          "duration": 3.7,
+          "engagement": 0.69,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.62,
+          "cut_smoothness": 0.69,
+          "audio_sync": 0.72
+        },
+        {
+          "type": "transition",
+          "duration": 1.3,
+          "engagement": 0.22,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.25,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "hook",
+          "duration": 3.0,
+          "engagement": 0.78,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.8,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.72
+        },
+        {
+          "type": "highlight",
+          "duration": 6.7,
+          "engagement": 0.76,
+          "has_hook": true,
+          "hook_strength": 0.46,
+          "transition_quality": 0.62,
+          "cut_smoothness": 0.6,
+          "audio_sync": 0.62
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
+    },
+    {
+      "id": "v035",
+      "platform": "tiktok",
+      "niche": "fashion",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 2.2,
+          "engagement": 0.45,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.65,
+          "cut_smoothness": 0.68,
+          "audio_sync": 0.69
+        },
+        {
+          "type": "filler",
+          "duration": 5.3,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.15,
+          "cut_smoothness": 0.2,
+          "audio_sync": 0.18
+        },
+        {
+          "type": "content",
+          "duration": 8.0,
+          "engagement": 0.33,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.41,
+          "cut_smoothness": 0.55,
+          "audio_sync": 0.63
+        },
+        {
+          "type": "hook",
+          "duration": 3.1,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.88,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.78,
+          "audio_sync": 0.83
+        },
+        {
+          "type": "transition",
+          "duration": 1.1,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.24,
+          "cut_smoothness": 0.24,
+          "audio_sync": 0.18
+        },
+        {
+          "type": "highlight",
+          "duration": 6.4,
+          "engagement": 0.74,
+          "has_hook": true,
+          "hook_strength": 0.63,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.57,
+          "audio_sync": 0.67
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.43,
+      "platform_compliant": true
+    },
+    {
+      "id": "v036",
+      "platform": "reels",
+      "niche": "travel",
+      "scenes": [
+        {
+          "type": "highlight",
+          "duration": 4.6,
+          "engagement": 0.65,
+          "has_hook": true,
+          "hook_strength": 0.56,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.69,
+          "audio_sync": 0.61
+        },
+        {
+          "type": "cta",
+          "duration": 2.4,
+          "engagement": 0.51,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.56,
+          "audio_sync": 0.46
+        },
+        {
+          "type": "content",
+          "duration": 7.8,
+          "engagement": 0.56,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.63,
+          "cut_smoothness": 0.56,
+          "audio_sync": 0.62
+        },
+        {
+          "type": "transition",
+          "duration": 1.1,
+          "engagement": 0.28,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.25,
+          "cut_smoothness": 0.25,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "filler",
+          "duration": 3.4,
+          "engagement": 0.09,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.08,
+          "cut_smoothness": 0.13,
+          "audio_sync": 0.21
+        },
+        {
+          "type": "hook",
+          "duration": 4.9,
+          "engagement": 0.82,
+          "has_hook": true,
+          "hook_strength": 0.75,
+          "transition_quality": 0.85,
+          "cut_smoothness": 0.78,
+          "audio_sync": 0.85
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v037",
+      "platform": "reels",
+      "niche": "tech",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.2,
+          "engagement": 0.73,
+          "has_hook": true,
+          "hook_strength": 0.7,
+          "transition_quality": 0.86,
+          "cut_smoothness": 0.75,
+          "audio_sync": 0.75
+        },
+        {
+          "type": "highlight",
+          "duration": 5.8,
+          "engagement": 0.75,
+          "has_hook": true,
+          "hook_strength": 0.51,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.66,
+          "audio_sync": 0.78
+        },
+        {
+          "type": "cta",
+          "duration": 3.2,
+          "engagement": 0.6,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.69,
+          "cut_smoothness": 0.61,
+          "audio_sync": 0.59
+        },
+        {
+          "type": "transition",
+          "duration": 1.7,
+          "engagement": 0.24,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.26,
+          "cut_smoothness": 0.25,
+          "audio_sync": 0.26
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
+    },
+    {
+      "id": "v038",
+      "platform": "reels",
+      "niche": "gaming",
+      "scenes": [
+        {
+          "type": "transition",
+          "duration": 2.5,
+          "engagement": 0.25,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.24,
+          "audio_sync": 0.27
+        },
+        {
+          "type": "highlight",
+          "duration": 6.2,
+          "engagement": 0.78,
+          "has_hook": true,
+          "hook_strength": 0.66,
+          "transition_quality": 0.64,
+          "cut_smoothness": 0.67,
+          "audio_sync": 0.78
+        },
+        {
+          "type": "filler",
+          "duration": 4.1,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.09,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.15
+        },
+        {
+          "type": "cta",
+          "duration": 2.8,
+          "engagement": 0.45,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.73,
+          "cut_smoothness": 0.66,
+          "audio_sync": 0.55
+        },
+        {
+          "type": "hook",
+          "duration": 4.6,
+          "engagement": 0.72,
+          "has_hook": true,
+          "hook_strength": 0.71,
+          "transition_quality": 0.71,
+          "cut_smoothness": 0.82,
+          "audio_sync": 0.82
+        },
+        {
+          "type": "content",
+          "duration": 7.3,
+          "engagement": 0.59,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.56,
+          "cut_smoothness": 0.42,
+          "audio_sync": 0.62
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.49,
+      "platform_compliant": true
+    },
+    {
+      "id": "v039",
+      "platform": "shorts",
+      "niche": "beauty",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.2,
+          "engagement": 0.75,
+          "has_hook": true,
+          "hook_strength": 0.75,
+          "transition_quality": 0.84,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.78
+        },
+        {
+          "type": "filler",
+          "duration": 5.7,
+          "engagement": 0.07,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.19,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.13
+        },
+        {
+          "type": "highlight",
+          "duration": 6.4,
+          "engagement": 0.61,
+          "has_hook": true,
+          "hook_strength": 0.65,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.58,
+          "audio_sync": 0.58
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.48,
+      "platform_compliant": true
+    },
+    {
+      "id": "v040",
+      "platform": "tiktok",
+      "niche": "motivation",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.4,
+          "engagement": 0.83,
+          "has_hook": true,
+          "hook_strength": 0.86,
+          "transition_quality": 0.73,
+          "cut_smoothness": 0.72,
+          "audio_sync": 0.72
+        },
+        {
+          "type": "content",
+          "duration": 9.6,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.49,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.42
+        },
+        {
+          "type": "transition",
+          "duration": 2.1,
+          "engagement": 0.17,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.18,
+          "audio_sync": 0.17
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.54,
+      "platform_compliant": true
+    },
+    {
+      "id": "v041",
+      "platform": "reels",
+      "niche": "finance",
+      "scenes": [
+        {
+          "type": "transition",
+          "duration": 1.9,
+          "engagement": 0.26,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.16,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.17
+        },
+        {
+          "type": "content",
+          "duration": 8.8,
+          "engagement": 0.49,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.5,
+          "cut_smoothness": 0.59,
+          "audio_sync": 0.53
+        },
+        {
+          "type": "hook",
+          "duration": 4.4,
+          "engagement": 0.76,
+          "has_hook": true,
+          "hook_strength": 0.73,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.76
+        },
+        {
+          "type": "highlight",
+          "duration": 5.6,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.48,
+          "transition_quality": 0.64,
+          "cut_smoothness": 0.79,
+          "audio_sync": 0.71
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.57,
+      "platform_compliant": true
+    },
+    {
+      "id": "v042",
+      "platform": "reels",
+      "niche": "parenting",
+      "scenes": [
+        {
+          "type": "cta",
+          "duration": 2.5,
+          "engagement": 0.66,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.54,
+          "cut_smoothness": 0.71,
+          "audio_sync": 0.6
+        },
+        {
+          "type": "filler",
+          "duration": 4.9,
+          "engagement": 0.19,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.13,
+          "cut_smoothness": 0.19,
+          "audio_sync": 0.21
+        },
+        {
+          "type": "transition",
+          "duration": 1.7,
+          "engagement": 0.21,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.23,
+          "audio_sync": 0.17
+        },
+        {
+          "type": "hook",
+          "duration": 4.7,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.78,
+          "transition_quality": 0.84,
+          "cut_smoothness": 0.82,
+          "audio_sync": 0.86
+        },
+        {
+          "type": "highlight",
+          "duration": 4.6,
+          "engagement": 0.61,
+          "has_hook": true,
+          "hook_strength": 0.53,
+          "transition_quality": 0.74,
+          "cut_smoothness": 0.6,
+          "audio_sync": 0.7
+        },
+        {
+          "type": "content",
+          "duration": 9.0,
+          "engagement": 0.62,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.44,
+          "cut_smoothness": 0.63,
+          "audio_sync": 0.43
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.52,
+      "platform_compliant": true
+    },
+    {
+      "id": "v043",
+      "platform": "reels",
+      "niche": "pets",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.5,
+          "engagement": 0.77,
+          "has_hook": true,
+          "hook_strength": 0.71,
+          "transition_quality": 0.78,
+          "cut_smoothness": 0.86,
+          "audio_sync": 0.78
+        },
+        {
+          "type": "cta",
+          "duration": 2.0,
+          "engagement": 0.7,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.68,
+          "cut_smoothness": 0.73,
+          "audio_sync": 0.45
+        },
+        {
+          "type": "transition",
+          "duration": 1.5,
+          "engagement": 0.13,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.13,
+          "cut_smoothness": 0.17,
+          "audio_sync": 0.22
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.53,
+      "platform_compliant": true
+    },
+    {
+      "id": "v044",
+      "platform": "shorts",
+      "niche": "sports",
+      "scenes": [
+        {
+          "type": "filler",
+          "duration": 5.1,
+          "engagement": 0.18,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.15,
+          "audio_sync": 0.19
+        },
+        {
+          "type": "hook",
+          "duration": 3.1,
+          "engagement": 0.82,
+          "has_hook": true,
+          "hook_strength": 0.72,
+          "transition_quality": 0.76,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.84
+        },
+        {
+          "type": "transition",
+          "duration": 2.1,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.13,
+          "audio_sync": 0.26
+        },
+        {
+          "type": "content",
+          "duration": 8.4,
+          "engagement": 0.33,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.52,
+          "cut_smoothness": 0.56,
+          "audio_sync": 0.41
+        },
+        {
+          "type": "cta",
+          "duration": 3.3,
+          "engagement": 0.52,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.61,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.51
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.39,
+      "platform_compliant": true
+    },
+    {
+      "id": "v045",
+      "platform": "tiktok",
+      "niche": "music",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.5,
+          "engagement": 0.85,
+          "has_hook": true,
+          "hook_strength": 0.83,
+          "transition_quality": 0.71,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.72
+        },
+        {
+          "type": "transition",
+          "duration": 2.3,
+          "engagement": 0.26,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.23,
+          "audio_sync": 0.16
+        },
+        {
+          "type": "cta",
+          "duration": 2.1,
+          "engagement": 0.43,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.62,
+          "cut_smoothness": 0.65,
+          "audio_sync": 0.46
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.51,
+      "platform_compliant": true
+    },
+    {
+      "id": "v046",
+      "platform": "reels",
+      "niche": "art",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 3.4,
+          "engagement": 0.74,
+          "has_hook": true,
+          "hook_strength": 0.76,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.87,
+          "audio_sync": 0.76
+        },
+        {
+          "type": "cta",
+          "duration": 2.2,
+          "engagement": 0.5,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.7,
+          "audio_sync": 0.56
+        },
+        {
+          "type": "content",
+          "duration": 8.8,
+          "engagement": 0.4,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.53,
+          "cut_smoothness": 0.49,
+          "audio_sync": 0.62
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.55,
+      "platform_compliant": true
+    },
+    {
+      "id": "v047",
+      "platform": "reels",
+      "niche": "diy",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.0,
+          "engagement": 0.84,
+          "has_hook": true,
+          "hook_strength": 0.84,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.86,
+          "audio_sync": 0.81
+        },
+        {
+          "type": "filler",
+          "duration": 3.1,
+          "engagement": 0.12,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.14,
+          "cut_smoothness": 0.12,
+          "audio_sync": 0.14
+        },
+        {
+          "type": "highlight",
+          "duration": 4.6,
+          "engagement": 0.79,
+          "has_hook": true,
+          "hook_strength": 0.55,
+          "transition_quality": 0.7,
+          "cut_smoothness": 0.57,
+          "audio_sync": 0.76
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.58,
+      "platform_compliant": true
+    },
+    {
+      "id": "v048",
+      "platform": "reels",
+      "niche": "news",
+      "scenes": [
+        {
+          "type": "filler",
+          "duration": 5.1,
+          "engagement": 0.17,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.1,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.15
+        },
+        {
+          "type": "highlight",
+          "duration": 5.7,
+          "engagement": 0.67,
+          "has_hook": true,
+          "hook_strength": 0.48,
+          "transition_quality": 0.6,
+          "cut_smoothness": 0.76,
+          "audio_sync": 0.75
+        },
+        {
+          "type": "cta",
+          "duration": 2.4,
+          "engagement": 0.45,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.67,
+          "cut_smoothness": 0.57,
+          "audio_sync": 0.55
+        },
+        {
+          "type": "hook",
+          "duration": 3.8,
+          "engagement": 0.86,
+          "has_hook": true,
+          "hook_strength": 0.7,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.77,
+          "audio_sync": 0.83
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.54,
+      "platform_compliant": true
+    },
+    {
+      "id": "v049",
+      "platform": "shorts",
+      "niche": "lifestyle",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.5,
+          "engagement": 0.75,
+          "has_hook": true,
+          "hook_strength": 0.84,
+          "transition_quality": 0.81,
+          "cut_smoothness": 0.78,
+          "audio_sync": 0.84
+        },
+        {
+          "type": "cta",
+          "duration": 2.3,
+          "engagement": 0.45,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.51,
+          "cut_smoothness": 0.66,
+          "audio_sync": 0.59
+        },
+        {
+          "type": "content",
+          "duration": 6.7,
+          "engagement": 0.44,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.57,
+          "cut_smoothness": 0.48,
+          "audio_sync": 0.57
+        },
+        {
+          "type": "transition",
+          "duration": 1.5,
+          "engagement": 0.11,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.25,
+          "audio_sync": 0.19
+        },
+        {
+          "type": "highlight",
+          "duration": 5.3,
+          "engagement": 0.6,
+          "has_hook": true,
+          "hook_strength": 0.57,
+          "transition_quality": 0.69,
+          "cut_smoothness": 0.64,
+          "audio_sync": 0.71
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.47,
+      "platform_compliant": true
+    },
+    {
+      "id": "v050",
+      "platform": "tiktok",
+      "niche": "health",
+      "scenes": [
+        {
+          "type": "hook",
+          "duration": 4.7,
+          "engagement": 0.81,
+          "has_hook": true,
+          "hook_strength": 0.83,
+          "transition_quality": 0.72,
+          "cut_smoothness": 0.73,
+          "audio_sync": 0.81
+        },
+        {
+          "type": "highlight",
+          "duration": 6.6,
+          "engagement": 0.58,
+          "has_hook": true,
+          "hook_strength": 0.48,
+          "transition_quality": 0.66,
+          "cut_smoothness": 0.78,
+          "audio_sync": 0.61
+        },
+        {
+          "type": "transition",
+          "duration": 1.5,
+          "engagement": 0.26,
+          "has_hook": false,
+          "hook_strength": 0.0,
+          "transition_quality": 0.17,
+          "cut_smoothness": 0.14,
+          "audio_sync": 0.27
+        }
+      ],
+      "viral": false,
+      "final_engagement": 0.55,
+      "platform_compliant": true
     }
   ],
   "engagement_patterns": {
@@ -127,18 +2797,61 @@
   "audience_personas": {
     "gen_z": {
       "description": "18-24, mobile-first, high scroll velocity",
-      "hook_weight": 0.45, "retention_weight": 0.20, "engagement_weight": 0.25,
-      "compliance_weight": 0.10, "max_attention_seconds": 8
+      "hook_weight": 0.45,
+      "retention_weight": 0.2,
+      "engagement_weight": 0.25,
+      "compliance_weight": 0.1,
+      "max_attention_seconds": 8
     },
     "millennial": {
       "description": "25-34, value-driven, watches to completion",
-      "hook_weight": 0.25, "retention_weight": 0.35, "engagement_weight": 0.25,
-      "compliance_weight": 0.15, "max_attention_seconds": 20
+      "hook_weight": 0.25,
+      "retention_weight": 0.35,
+      "engagement_weight": 0.25,
+      "compliance_weight": 0.15,
+      "max_attention_seconds": 20
     },
     "brand": {
       "description": "Brand safety, reach-focused, compliance critical",
-      "hook_weight": 0.20, "retention_weight": 0.20, "engagement_weight": 0.20,
-      "compliance_weight": 0.40, "max_attention_seconds": 30
+      "hook_weight": 0.2,
+      "retention_weight": 0.2,
+      "engagement_weight": 0.2,
+      "compliance_weight": 0.4,
+      "max_attention_seconds": 30
     }
-  }
+  },
+  "total_count": 50,
+  "niches_covered": [
+    "tech",
+    "art",
+    "news",
+    "fashion",
+    "finance",
+    "cooking",
+    "education",
+    "lifestyle",
+    "pets",
+    "parenting",
+    "food",
+    "beauty",
+    "nature",
+    "science",
+    "history",
+    "motivation",
+    "dating",
+    "music",
+    "architecture",
+    "crypto",
+    "health",
+    "diy",
+    "sports",
+    "comedy",
+    "gaming",
+    "fitness",
+    "politics",
+    "cars",
+    "startup",
+    "travel"
+  ],
+  "viral_rate": 0.08
 }
