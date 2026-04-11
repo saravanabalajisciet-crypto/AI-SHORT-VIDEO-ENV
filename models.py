@@ -13,9 +13,10 @@ class ActionType(str, Enum):
     boost_hook          = "boost_hook"           # {}
     trim_duration       = "trim_duration"        # {"target_seconds": float}
     enhance_pacing      = "enhance_pacing"       # {}
-    improve_transition  = "improve_transition"   # {}  — raise avg transition_quality
-    smooth_cut          = "smooth_cut"           # {}  — raise avg cut_smoothness
-    sync_audio          = "sync_audio"           # {}  — raise avg audio_sync_score
+    improve_transition  = "improve_transition"   # {}
+    smooth_cut          = "smooth_cut"           # {}
+    sync_audio          = "sync_audio"           # {}
+    finalize_edit       = "finalize_edit"        # {} — irreversible, locks episode, triggers final grading
 
 
 class Action(BaseModel):

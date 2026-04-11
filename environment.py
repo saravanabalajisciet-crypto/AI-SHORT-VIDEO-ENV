@@ -1,7 +1,9 @@
 import uuid
 import random
+import json
+import os
 from copy import deepcopy
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, Dict, Any, List, Optional
 
 from models import Action, ActionType, Observation, Scene, State, AIFeedback
 
@@ -14,7 +16,20 @@ PLATFORM_LIMITS = {
     "tiktok": 60.0,
 }
 
-# (type, has_hook, hook_str_range, dur_range, eng_range, tq_range, cs_range, as_range)
+# ── Load real video dataset ────────────────────────────────────────────────────
+_DATASET_PATH = os.path.join(os.path.dirname(__file__), "video_dataset.json")
+try:
+    with open(_DATASET_PATH) as f:
+        _DATASET = json.load(f)
+    _REAL_VIDEOS = _DATASET["videos"]
+    _AUDIENCE_PERSONAS = _DATASET["audience_personas"]
+    _ENGAGEMENT_PATTERNS = _DATASET["engagement_patterns"]
+except Exception:
+    _REAL_VIDEOS = []
+    _AUDIENCE_PERSONAS = {}
+    _ENGAGEMENT_PATTERNS = {}
+
+# ── Synthetic fallback templates ───────────────────────────────────────────────
 _TEMPLATES = [
     ("hook",       True,  (0.55, 0.85), (3.0,  6.0),  (0.60, 0.88), (0.65, 0.90), (0.60, 0.85), (0.60, 0.85)),
     ("highlight",  True,  (0.40, 0.70), (4.0,  7.0),  (0.50, 0.78), (0.55, 0.80), (0.55, 0.80), (0.55, 0.80)),
@@ -41,7 +56,34 @@ def _make_scene(idx, stype, has_hook, hook_str, dur, eng, tq, cs, as_):
 
 
 def _initial_scenes(seed):
+    """
+    Generate initial scenes. Uses real video dataset when available,
+    falls back to synthetic templates. Real data grounded in actual
+    creator engagement patterns from public analytics research.
+    """
     rng = random.Random(seed)
+
+    # Use real dataset if available (primary path)
+    if _REAL_VIDEOS:
+        video = _REAL_VIDEOS[seed % len(_REAL_VIDEOS)]
+        scenes = []
+        for i, s in enumerate(video["scenes"]):
+            # Add small seed-controlled noise to prevent identical episodes
+            noise = rng.uniform(-0.03, 0.03)
+            scenes.append(Scene(
+                id=f"scene_{i}",
+                duration=round(s["duration"] + rng.uniform(-0.3, 0.3), 2),
+                engagement_score=round(min(1.0, max(0.0, s["engagement"] + noise)), 3),
+                scene_type=s["type"],
+                has_hook=s["has_hook"],
+                hook_strength=round(min(1.0, max(0.0, s["hook_strength"] + noise)), 3),
+                transition_quality=round(min(1.0, max(0.0, s["transition_quality"] + noise)), 3),
+                cut_smoothness=round(min(1.0, max(0.0, s["cut_smoothness"] + noise)), 3),
+                audio_sync_score=round(min(1.0, max(0.0, s["audio_sync"] + noise)), 3),
+            ))
+        return scenes
+
+    # Synthetic fallback
     templates = list(_TEMPLATES)
     drops = rng.randint(0, 2)
     for _ in range(drops):
@@ -52,9 +94,15 @@ def _initial_scenes(seed):
         scenes.append(_make_scene(
             i, stype, has_hook,
             rng.uniform(*hs_r), rng.uniform(*dur_r), rng.uniform(*eng_r),
-            rng.uniform(*tq_r), rng.uniform(*cs_r),  rng.uniform(*as_r),
+            rng.uniform(*tq_r), rng.uniform(*cs_r), rng.uniform(*as_r),
         ))
     return scenes
+
+
+def _get_persona(seed: int) -> str:
+    """Assign audience persona based on seed."""
+    personas = list(_AUDIENCE_PERSONAS.keys()) if _AUDIENCE_PERSONAS else ["gen_z", "millennial", "brand"]
+    return personas[seed % len(personas)]
 
 
 def _avg(scenes, attr):
@@ -189,6 +237,8 @@ class VideoOptimizationEnv:
         self._transition_improved = False
         self._cut_smoothed = False
         self._audio_synced = False
+        self._finalized = False
+        self._persona = "gen_z"  # audience persona
 
     def reset(self):
         scenes = _initial_scenes(self.seed)
@@ -198,6 +248,17 @@ class VideoOptimizationEnv:
         self._transition_improved = False
         self._cut_smoothed = False
         self._audio_synced = False
+        self._finalized = False
+        self._persona = _get_persona(self.seed)
+
+        # Get real video context if available
+        real_video_id = None
+        real_niche = None
+        if _REAL_VIDEOS:
+            v = _REAL_VIDEOS[self.seed % len(_REAL_VIDEOS)]
+            real_video_id = v.get("id")
+            real_niche = v.get("niche")
+
         obs = _build_observation(scenes, self.platform, subtitles=False, music=False)
         self._state = State(
             episode_id=str(uuid.uuid4()),
@@ -212,6 +273,10 @@ class VideoOptimizationEnv:
                 "initial_transition_quality": obs.avg_transition_quality,
                 "platform": self.platform,
                 "seed": self.seed,
+                "audience_persona": self._persona,
+                "real_video_id": real_video_id,
+                "niche": real_niche,
+                "data_source": "real" if _REAL_VIDEOS else "synthetic",
             },
         )
         return deepcopy(self._state)
@@ -372,6 +437,32 @@ class VideoOptimizationEnv:
                     "engagement_score": min(1.0, round(s.engagement_score + 0.03, 3)),
                 }) for s in obs.scenes]
 
+        elif action.action_type == ActionType.finalize_edit:
+            # IRREVERSIBLE action — locks the episode and triggers persona-weighted final score
+            if self._finalized:
+                reward -= 0.3
+                info.update(valid=False, reason="edit already finalized — irreversible")
+            else:
+                self._finalized = True
+                # Persona-weighted bonus on finalize
+                persona_data = _AUDIENCE_PERSONAS.get(self._persona, {})
+                hook_w   = persona_data.get("hook_weight", 0.25)
+                ret_w    = persona_data.get("retention_weight", 0.25)
+                eng_w    = persona_data.get("engagement_weight", 0.25)
+                comp_w   = persona_data.get("compliance_weight", 0.25)
+                persona_score = (
+                    obs.hook_strength * hook_w +
+                    obs.avg_retention * ret_w +
+                    obs.current_engagement_score * eng_w +
+                    (1.0 if obs.platform_compliant else 0.0) * comp_w
+                )
+                reward += round(persona_score * 0.5, 4)
+                info["persona"] = self._persona
+                info["persona_score"] = round(persona_score, 4)
+                info["note"] = f"Edit finalized for {self._persona} audience. Irreversible."
+                # Force episode done after finalize
+                self._state.done = True
+
         obs = _build_observation(obs.scenes, self.platform, subtitles=obs.subtitles_present, music=self._music_applied)
 
         if info["valid"]:
@@ -408,7 +499,11 @@ class VideoOptimizationEnv:
         reward = round(reward, 4)
         self._state.step_count += 1
         self._state.observation = obs
-        done = self._state.step_count >= MAX_STEPS or obs.current_engagement_score >= ENGAGEMENT_THRESHOLD
+        done = (
+            self._state.step_count >= MAX_STEPS
+            or obs.current_engagement_score >= ENGAGEMENT_THRESHOLD
+            or self._finalized
+        )
         self._state.done = done
         return deepcopy(self._state), reward, done, info
 

@@ -159,6 +159,14 @@ actions:
     description: Raise audio_sync_score on all scenes by +0.15 and engagement by +0.03.
     parameters: {}
 
+  finalize_edit:
+    description: >
+      IRREVERSIBLE action. Locks the episode and triggers persona-weighted final scoring.
+      Audience persona (gen_z/millennial/brand) is assigned at reset based on seed.
+      Persona weights hook_strength, retention, engagement, and compliance differently.
+      Calling finalize_edit ends the episode immediately — plan carefully before using.
+    parameters: {}
+
 # ── observation space ──────────────────────────────────────────────────────────
 observation:
   scenes:

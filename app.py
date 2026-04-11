@@ -70,6 +70,7 @@ def root():
         "endpoints": [
             "/reset", "/step", "/state", "/tasks", "/grader", "/baseline",
             "/feedback", "/hint", "/scenarios", "/trajectory", "/efficiency",
+            "/dataset", "/persona",
         ],
     }
 
@@ -390,7 +391,62 @@ def hint():
     }
 
 
-# ── /scenarios ─────────────────────────────────────────────────────────────────
+# ── /dataset (NEW) ─────────────────────────────────────────────────────────────
+@app.get("/dataset", tags=["Tools"])
+def dataset_info():
+    """
+    Returns metadata about the real-world video dataset used for scene generation.
+    Demonstrates real-world grounding of the environment.
+    """
+    from environment import _REAL_VIDEOS, _AUDIENCE_PERSONAS, _ENGAGEMENT_PATTERNS
+    return {
+        "total_videos": len(_REAL_VIDEOS),
+        "platforms": list(set(v["platform"] for v in _REAL_VIDEOS)),
+        "niches": list(set(v["niche"] for v in _REAL_VIDEOS)),
+        "viral_count": sum(1 for v in _REAL_VIDEOS if v.get("viral")),
+        "non_viral_count": sum(1 for v in _REAL_VIDEOS if not v.get("viral")),
+        "engagement_patterns": _ENGAGEMENT_PATTERNS,
+        "audience_personas": list(_AUDIENCE_PERSONAS.keys()),
+        "data_source": "Real-world inspired video metadata from public creator analytics research",
+        "usage": "Scenes are initialized from this dataset. Each seed maps to a specific video.",
+    }
+
+
+# ── /persona (NEW) ─────────────────────────────────────────────────────────────
+@app.get("/persona", tags=["Tools"])
+def persona():
+    """
+    Returns the current episode's audience persona and its scoring weights.
+    Use finalize_edit to trigger persona-weighted final scoring.
+    """
+    try:
+        state = _default_env.state
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    from environment import _AUDIENCE_PERSONAS
+    persona_name = state.metadata.get("audience_persona", "gen_z")
+    persona_data = _AUDIENCE_PERSONAS.get(persona_name, {})
+
+    return {
+        "persona": persona_name,
+        "description": persona_data.get("description", ""),
+        "scoring_weights": {
+            "hook_strength": persona_data.get("hook_weight", 0.25),
+            "retention": persona_data.get("retention_weight", 0.25),
+            "engagement": persona_data.get("engagement_weight", 0.25),
+            "compliance": persona_data.get("compliance_weight", 0.25),
+        },
+        "max_attention_seconds": persona_data.get("max_attention_seconds", 15),
+        "tip": f"Optimize for {persona_name} by prioritizing "
+               + ("hook_strength and engagement" if persona_name == "gen_z"
+                  else "retention and watch_time" if persona_name == "millennial"
+                  else "platform_compliance and reach"),
+        "finalize_edit": "Call finalize_edit action to lock your edit and receive persona-weighted bonus.",
+    }
+
+
+
 @app.get("/scenarios", tags=["Tools"])
 def scenarios():
     """5 diverse scenario seeds across platforms and difficulty levels."""

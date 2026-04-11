@@ -17,6 +17,7 @@ COPY models.py .
 COPY client.py .
 COPY inference.py .
 COPY openenv.yaml .
+COPY video_dataset.json .
 COPY server/ ./server/
 
 # HF Spaces runs as non-root user
