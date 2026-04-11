@@ -1,151 +1,164 @@
 """
-inference.py -- LLM-powered agent that runs a full episode against the environment.
+inference.py -- LLM-powered agent for AI Short-Form Video Optimization Environment.
 
-Reads from environment variables:
-  API_BASE_URL  : LiteLLM proxy base URL (injected by validator)
-  API_KEY       : LiteLLM proxy API key (injected by validator)
-  ENV_URL       : base URL of the RL environment server (default: http://localhost:7860)
-  MODEL_NAME    : LLM model name to use (default: gpt-4o-mini)
-  HF_TOKEN      : optional Hugging Face token for authenticated spaces
+Environment variables (injected by validator):
+  API_BASE_URL     : LiteLLM proxy base URL for LLM calls
+  API_KEY          : LiteLLM proxy API key
+  HF_TOKEN         : Hugging Face token (also used as API_KEY fallback)
+  MODEL_NAME       : LLM model identifier (default: gpt-4o-mini)
+  ENV_URL          : RL environment server URL (default: http://localhost:7860)
 
-Usage:
-  python inference.py
-  ENV_URL=http://localhost:7860 python inference.py
+Stdout format (mandatory):
+  [START] task=<name> env=ai-video-optimizer model=<model>
+  [STEP]  step=<n> action=<action> reward=<0.00> done=<true|false> error=<msg|null>
+  [END]   success=<true|false> steps=<n> score=<0.00> rewards=<r1,r2,...>
 """
 
 import os
 import sys
 import time
+import json
 import requests
 
-# -- config ---------------------------------------------------------------------
-# LiteLLM proxy (injected by validator)
-LLM_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-LLM_API_KEY  = os.getenv("API_KEY", os.getenv("OPENAI_API_KEY", "no-key"))
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY", "no-key")
 MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
+ENV_URL      = os.getenv("ENV_URL", os.getenv("ENVIRONMENT_URL", "http://localhost:7860")).rstrip("/")
+HF_TOKEN     = os.getenv("HF_TOKEN", "")
 
-# RL environment server
-ENV_URL  = os.getenv("ENV_URL", os.getenv("ENVIRONMENT_URL", "http://localhost:7860")).rstrip("/")
-HF_TOKEN = os.getenv("HF_TOKEN", "")
+ENV_HEADERS  = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
-ENV_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
-
+BENCHMARK   = "ai-video-optimizer"
 PLATFORM    = "reels"
 SEED        = 42
-TIMEOUT     = 30       # seconds per request
-MAX_RETRIES = 5        # retries before giving up
-MAX_STEPS   = 15       # hard cap -- never exceed
+TIMEOUT     = 30
+MAX_RETRIES = 5
+MAX_STEPS   = 15
 
 TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.875}
 
 W = 68
 
+# ---------------------------------------------------------------------------
+# OpenAI client (mandatory per spec)
+# ---------------------------------------------------------------------------
+try:
+    from openai import OpenAI
+    _openai_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    _openai_available = True
+except Exception:
+    _openai_client = None
+    _openai_available = False
 
-# -- LLM client (through validator proxy) ---------------------------------------
 
-def llm_decide(obs: dict, step_num: int) -> tuple:
+def llm_decide(obs: dict, step_num: int, task_id: str) -> tuple:
     """
-    Call LLM through the validator's LiteLLM proxy to decide next action.
-    Falls back to heuristic if LLM call fails.
-    Returns (action_type, parameters).
+    Call LLM via OpenAI client through validator proxy.
+    Returns (action_type, parameters, error_str).
+    Falls back to (None, None, error) on failure.
     """
+    if not _openai_available or not _openai_client:
+        return None, None, "openai-unavailable"
+
     try:
-        import json
+        # Use /hint endpoint context if available
+        hint_context = ""
+        try:
+            h = requests.get(f"{ENV_URL}/hint", headers=ENV_HEADERS, timeout=10)
+            if h.status_code == 200:
+                hd = h.json()
+                hint_context = f"\nHint: {hd.get('best_action','')}: {hd.get('reason','')}"
+        except Exception:
+            pass
+
         prompt = (
-            f"You are a video optimization agent. Current state (step {step_num}):\n"
-            f"- engagement: {obs.get('current_engagement_score', 0):.3f}\n"
-            f"- retention: {obs.get('avg_retention', 0):.3f}\n"
-            f"- hook_strength: {obs.get('hook_strength', 0):.3f}\n"
-            f"- duration: {obs.get('total_duration', 0):.1f}s\n"
-            f"- platform_compliant: {obs.get('platform_compliant', False)}\n"
-            f"- subtitles_present: {obs.get('subtitles_present', False)}\n"
-            f"- music_added: {obs.get('music_added', False)}\n"
-            f"- avg_transition_quality: {obs.get('avg_transition_quality', 0):.3f}\n"
-            f"- avg_cut_smoothness: {obs.get('avg_cut_smoothness', 0):.3f}\n"
-            f"- avg_audio_sync_score: {obs.get('avg_audio_sync_score', 0):.3f}\n"
-            f"Reply with JSON only: {{\"action\": \"action_name\", \"parameters\": {{}}}}\n"
+            f"You are an expert short-form video editor agent optimizing for {BENCHMARK}.\n"
+            f"Task: {task_id} | Step: {step_num}{hint_context}\n\n"
+            f"Current video state:\n"
+            f"  engagement={obs.get('current_engagement_score',0):.3f}  "
+            f"retention={obs.get('avg_retention',0):.3f}  "
+            f"hook_strength={obs.get('hook_strength',0):.3f}\n"
+            f"  duration={obs.get('total_duration',0):.1f}s  "
+            f"platform_compliant={obs.get('platform_compliant',False)}  "
+            f"subtitles={obs.get('subtitles_present',False)}  "
+            f"music={obs.get('music_added',False)}\n"
+            f"  avg_transition_quality={obs.get('avg_transition_quality',0):.3f}  "
+            f"avg_cut_smoothness={obs.get('avg_cut_smoothness',0):.3f}  "
+            f"avg_audio_sync_score={obs.get('avg_audio_sync_score',0):.3f}\n\n"
             f"Valid actions: boost_hook, enhance_pacing, add_subtitles, add_music, "
-            f"improve_transition, smooth_cut, sync_audio, trim_duration, cut_scene, reorder_scenes"
+            f"improve_transition, smooth_cut, sync_audio, trim_duration, cut_scene, reorder_scenes\n\n"
+            f"Reply with JSON only, no markdown:\n"
+            f'  {{"action": "action_name", "parameters": {{}}}}'
         )
-        headers = {
-            "Authorization": f"Bearer {LLM_API_KEY}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": MODEL_NAME,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 100,
-            "temperature": 0,
-        }
-        r = requests.post(
-            f"{LLM_BASE_URL.rstrip('/')}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=30,
+
+        response = _openai_client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=120,
+            temperature=0,
         )
-        if r.status_code == 200:
-            content = r.json()["choices"][0]["message"]["content"].strip()
-            # strip markdown code fences if present
-            content = content.replace("```json", "").replace("```", "").strip()
-            parsed = json.loads(content)
-            return parsed.get("action", "enhance_pacing"), parsed.get("parameters", {})
+        content = response.choices[0].message.content.strip()
+        content = content.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(content)
+        action = parsed.get("action", "enhance_pacing")
+        params = parsed.get("parameters", {})
+        return action, params, None
+
     except Exception as e:
-        print(f"  [LLM] fallback ({e})", flush=True)
-    return None, None  # signal to use heuristic
+        return None, None, str(e)
 
 
-# -- safe HTTP helpers ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Safe HTTP helpers for environment server
+# ---------------------------------------------------------------------------
 
 def _request(method: str, path: str, **kwargs) -> dict:
-    """
-    Execute an HTTP request with retry logic and safe fallback.
-    Returns parsed JSON dict, or {} on failure.
-    """
     url = f"{ENV_URL}{path}"
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.request(
-                method, url,
-                headers=ENV_HEADERS,
-                timeout=TIMEOUT,
-                **kwargs,
+                method, url, headers=ENV_HEADERS, timeout=TIMEOUT, **kwargs
             )
             if resp.status_code != 200:
                 print(f"  [WARN] {method} {path} -> HTTP {resp.status_code} "
-                      f"(attempt {attempt}/{MAX_RETRIES})")
+                      f"(attempt {attempt}/{MAX_RETRIES})", flush=True)
                 if attempt < MAX_RETRIES:
                     time.sleep(1)
                     continue
                 return {}
             try:
                 return resp.json()
-            except Exception as json_err:
-                print(f"  [WARN] JSON parse error on {path}: {json_err}")
+            except Exception as e:
+                print(f"  [WARN] JSON parse error on {path}: {e}", flush=True)
                 return {}
         except requests.exceptions.Timeout:
-            print(f"  [WARN] Timeout on {path} (attempt {attempt}/{MAX_RETRIES})")
+            print(f"  [WARN] Timeout on {path} (attempt {attempt}/{MAX_RETRIES})", flush=True)
         except requests.exceptions.ConnectionError as e:
-            print(f"  [WARN] Connection error on {path}: {e} (attempt {attempt}/{MAX_RETRIES})")
+            print(f"  [WARN] Connection error on {path}: {e} (attempt {attempt}/{MAX_RETRIES})", flush=True)
         except Exception as e:
-            print(f"  [WARN] Unexpected error on {path}: {e} (attempt {attempt}/{MAX_RETRIES})")
+            print(f"  [WARN] Unexpected error on {path}: {e} (attempt {attempt}/{MAX_RETRIES})", flush=True)
         if attempt < MAX_RETRIES:
             time.sleep(1)
-    print(f"  [ERROR] {method} {path} failed after {MAX_RETRIES} attempts -- using fallback.")
+    print(f"  [ERROR] {method} {path} failed after {MAX_RETRIES} attempts.", flush=True)
     return {}
 
 
-def post(path: str, json: dict = None, params: dict = None) -> dict:
-    return _request("POST", path, json=json, params=params)
+def post(path: str, json_body: dict = None, params: dict = None) -> dict:
+    return _request("POST", path, json=json_body, params=params)
 
 
 def get(path: str) -> dict:
     return _request("GET", path)
 
 
-# -- safe observation accessors -------------------------------------------------
+# ---------------------------------------------------------------------------
+# Safe accessors
+# ---------------------------------------------------------------------------
 
 def _obs(state: dict) -> dict:
-    """Safely extract observation from state dict."""
     try:
         return state.get("observation", {}) or {}
     except Exception:
@@ -153,7 +166,6 @@ def _obs(state: dict) -> dict:
 
 
 def _get(d: dict, key: str, default=0.0):
-    """Safe dict getter with default."""
     try:
         val = d.get(key, default)
         return val if val is not None else default
@@ -161,102 +173,119 @@ def _get(d: dict, key: str, default=0.0):
         return default
 
 
-# -- baseline strategy ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Episode runner
+# ---------------------------------------------------------------------------
 
 def run_episode(task_id: str) -> dict:
-    """Run one full episode. Never raises -- always returns a result dict."""
+    """Run one full episode. Always returns a result dict, never raises."""
 
     default_result = {
-        "task_id":    task_id,
-        "score":      0.0,
-        "passed":     False,
-        "steps":      0,
-        "reward":     0.0,
-        "engagement": 0.0,
-        "retention":  0.0,
+        "task_id": task_id, "score": 0.0, "passed": False,
+        "steps": 0, "reward": 0.0, "engagement": 0.0, "retention": 0.0,
     }
 
     try:
-        print(f"\n{'-'*W}")
-        print(f"  Task: {task_id.upper()}  |  Model: {MODEL_NAME}  |  Seed: {SEED}")
-        print(f"{'-'*W}")
+        print(f"\n{'-'*W}", flush=True)
+        print(f"  Task: {task_id.upper()}  |  Model: {MODEL_NAME}  |  Seed: {SEED}", flush=True)
+        print(f"{'-'*W}", flush=True)
 
-        # Structured output: START
-        print(f"[START] task={task_id}", flush=True)
+        # -- [START] --------------------------------------------------------
+        print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
-        # 1. Reset
+        # Reset environment
         state = post("/reset", params={"platform": PLATFORM, "seed": SEED})
         if not state:
-            print(f"  [ERROR] /reset returned empty -- skipping {task_id}")
-            print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
+            print(f"  [ERROR] /reset returned empty -- skipping {task_id}", flush=True)
+            print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
             return default_result
 
         obs = _obs(state)
         print(f"  Initial  eng={_get(obs,'current_engagement_score'):.3f}  "
               f"ret={_get(obs,'avg_retention'):.3f}  "
               f"dur={_get(obs,'total_duration'):.1f}s  "
-              f"scenes={len(_get(obs,'scenes',[]))}")
+              f"scenes={len(_get(obs,'scenes',[]))}", flush=True)
 
         done         = bool(state.get("done", False))
         step_num     = 0
         total_reward = 0.0
+        rewards_list = []
+        last_error   = None
 
-        def step(action_type: str, parameters: dict = None) -> None:
-            nonlocal state, done, step_num, total_reward
+        def step(action_type: str, parameters: dict = None, error_hint: str = None) -> None:
+            nonlocal state, done, step_num, total_reward, last_error
             if done or step_num >= MAX_STEPS:
                 return
+            err_str = error_hint or "null"
             try:
-                resp = post("/step", json={"action_type": action_type,
-                                           "parameters": parameters or {}})
+                resp = post("/step", json_body={"action_type": action_type,
+                                                "parameters": parameters or {}})
                 if not resp:
-                    print(f"  [WARN] /step {action_type} returned empty -- skipping")
+                    last_error = f"empty-response-{action_type}"
+                    print(f"[STEP]  step={step_num+1} action={action_type} "
+                          f"reward=0.00 done=false error={last_error}", flush=True)
                     return
+
                 state        = resp.get("state", state)
                 done         = bool(resp.get("done", done))
                 reward       = float(resp.get("reward", 0.0))
                 info         = resp.get("info", {}) or {}
                 valid        = info.get("valid", True)
                 total_reward += reward
+                rewards_list.append(reward)
                 step_num     += 1
-                o   = _obs(state)
-                tag = "OK" if valid else "!!"
-                print(f"[STEP] step={step_num} action={action_type} reward={reward:.4f}", flush=True)
-                print(f"  step {step_num:02d} {tag} | {action_type:<20s} | "
+
+                if not valid:
+                    last_error = info.get("reason", "invalid-action")
+                else:
+                    last_error = None
+
+                err_out = last_error if last_error else "null"
+                done_str = "true" if done else "false"
+
+                # -- [STEP] mandatory format --------------------------------
+                print(f"[STEP]  step={step_num} action={action_type} "
+                      f"reward={reward:.2f} done={done_str} error={err_out}", flush=True)
+
+                o = _obs(state)
+                print(f"  step {step_num:02d} {'OK' if valid else '!!'} | {action_type:<20s} | "
                       f"r={reward:+.3f} | eng={_get(o,'current_engagement_score'):.3f} | "
                       f"ret={_get(o,'avg_retention'):.3f} | "
-                      f"hook={_get(o,'hook_strength'):.3f}")
+                      f"hook={_get(o,'hook_strength'):.3f}", flush=True)
+
             except Exception as e:
-                print(f"  [WARN] step({action_type}) error: {e}")
+                last_error = str(e)
+                print(f"[STEP]  step={step_num+1} action={action_type} "
+                      f"reward=0.00 done=false error={last_error}", flush=True)
 
-        # 2. LLM-guided action loop with heuristic fallback
-        # First make one LLM call to satisfy the proxy requirement
-        llm_action, llm_params = llm_decide(_obs(state), step_num + 1)
+        # -- LLM call (mandatory proxy usage) --------------------------------
+        llm_action, llm_params, llm_err = llm_decide(_obs(state), step_num + 1, task_id)
+        if llm_err:
+            print(f"  [LLM] fallback ({llm_err})", flush=True)
 
-        # Heuristic sequence (used as fallback or after LLM)
+        # -- Build heuristic action sequence ---------------------------------
         heuristic_actions = []
 
-        # Reorder: best hook scene first
         try:
             scenes = list(_get(obs, "scenes", []))
-            hooks  = [s for s in scenes
-                      if isinstance(s, dict)
-                      and s.get("scene_type") in ("hook", "highlight")
-                      and s.get("has_hook")]
+            hooks = [s for s in scenes
+                     if isinstance(s, dict)
+                     and s.get("scene_type") in ("hook", "highlight")
+                     and s.get("has_hook")]
             if hooks:
                 best = max(hooks, key=lambda s: float(s.get("hook_strength", 0.0)))
                 if scenes and scenes[0].get("id") != best.get("id"):
                     order = [best["id"]] + [s["id"] for s in scenes if s["id"] != best["id"]]
                     heuristic_actions.append(("reorder_scenes", {"order": order}))
         except Exception as e:
-            print(f"  [WARN] reorder logic error: {e}")
+            print(f"  [WARN] reorder logic: {e}", flush=True)
 
         heuristic_actions.append(("boost_hook", {}))
 
-        # Cut low-engagement filler/transition scenes
         try:
-            current_scenes = list(_get(_obs(state), "scenes", []))
+            cur_scenes = list(_get(_obs(state), "scenes", []))
             candidates = sorted(
-                [s for s in current_scenes
+                [s for s in cur_scenes
                  if isinstance(s, dict)
                  and float(s.get("engagement_score", 1.0)) < 0.30
                  and s.get("scene_type") in ("filler", "transition")],
@@ -265,9 +294,8 @@ def run_episode(task_id: str) -> dict:
             for scene in candidates:
                 heuristic_actions.append(("cut_scene", {"scene_id": scene["id"]}))
         except Exception as e:
-            print(f"  [WARN] cut_scene logic error: {e}")
+            print(f"  [WARN] cut_scene logic: {e}", flush=True)
 
-        # Trim duration if over platform limit
         if float(_get(_obs(state), "total_duration", 0.0)) > 30.0:
             heuristic_actions.append(("trim_duration", {"target_seconds": 30.0}))
 
@@ -284,23 +312,21 @@ def run_episode(task_id: str) -> dict:
             heuristic_actions.append(("add_subtitles", {}))
         heuristic_actions.append(("add_music", {}))
 
-        # Execute: LLM action first (if valid), then heuristic sequence
+        # -- Execute: LLM first, then heuristic ------------------------------
         if llm_action:
-            step(llm_action, llm_params or {})
+            step(llm_action, llm_params or {}, llm_err)
 
         for action_type, params in heuristic_actions:
             if step_num >= MAX_STEPS:
                 break
-            # skip if LLM already did this action
             if llm_action == action_type:
                 continue
-            # guard scene count for cut_scene
             if action_type == "cut_scene":
                 if len(list(_get(_obs(state), "scenes", []))) <= 3:
                     continue
             step(action_type, params)
 
-        # 10. Grade
+        # -- Grade -----------------------------------------------------------
         score = 0.0
         breakdown = {}
         try:
@@ -309,22 +335,25 @@ def run_episode(task_id: str) -> dict:
                 score     = float(grader.get("score", 0.0))
                 breakdown = grader.get("breakdown", {}) or {}
             else:
-                print(f"  [WARN] /grader returned empty -- defaulting score to 0.0")
+                print("  [WARN] /grader empty -- score=0.0", flush=True)
         except Exception as e:
-            print(f"  [WARN] grader error: {e} -- defaulting score to 0.0")
+            print(f"  [WARN] grader error: {e}", flush=True)
 
-        passed = score >= TASK_TARGETS.get(task_id, 1.0)
+        passed    = score >= TASK_TARGETS.get(task_id, 1.0)
         final_obs = _obs(state)
+        success_str = "true" if passed else "false"
+        rewards_str = ",".join(f"{r:.2f}" for r in rewards_list) if rewards_list else ""
 
-        # Structured output: END
-        print(f"[END] task={task_id} score={score:.4f} steps={step_num}", flush=True)
+        # -- [END] mandatory format ------------------------------------------
+        print(f"[END]   success={success_str} steps={step_num} "
+              f"score={score:.2f} rewards={rewards_str}", flush=True)
 
-        print(f"\n  GRADER SCORE : {score:.4f}  {'PASSED' if passed else 'FAILED'}")
-        print(f"  Total reward : {total_reward:.4f}  |  Steps: {step_num}")
+        print(f"\n  GRADER SCORE : {score:.4f}  {'PASSED' if passed else 'FAILED'}", flush=True)
+        print(f"  Total reward : {total_reward:.4f}  |  Steps: {step_num}", flush=True)
         for k, v in breakdown.items():
             if k != "final_score":
                 try:
-                    print(f"    {k:<25s}: {float(v):.4f}")
+                    print(f"    {k:<25s}: {float(v):.4f}", flush=True)
                 except Exception:
                     pass
 
@@ -339,58 +368,54 @@ def run_episode(task_id: str) -> dict:
         }
 
     except Exception as e:
-        print(f"  [ERROR] run_episode({task_id}) crashed: {e}")
-        print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
+        print(f"  [ERROR] run_episode({task_id}) crashed: {e}", flush=True)
+        print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
         return default_result
 
 
-# -- main -----------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main():
     try:
-        print(f"\n{'='*W}")
-        print(f"  AI Short-Form Video Optimization -- Inference")
-        print(f"  Model   : {MODEL_NAME}")
-        print(f"  LLM API : {LLM_BASE_URL}")
-        print(f"  Env URL : {ENV_URL}")
-        print(f"  Platform: {PLATFORM}  Seed: {SEED}")
-        print(f"{'='*W}")
+        print(f"\n{'='*W}", flush=True)
+        print(f"  AI Short-Form Video Optimization -- Inference", flush=True)
+        print(f"  Model   : {MODEL_NAME}", flush=True)
+        print(f"  LLM API : {API_BASE_URL}", flush=True)
+        print(f"  Env URL : {ENV_URL}", flush=True)
+        print(f"  Platform: {PLATFORM}  Seed: {SEED}", flush=True)
+        print(f"{'='*W}", flush=True)
 
-        # Health check -- non-fatal
+        # Health check (non-fatal)
         try:
             health = get("/health")
             if health:
-                print(f"  Health  : {health.get('status', 'unknown')}")
+                print(f"  Health  : {health.get('status', 'unknown')}", flush=True)
             else:
-                # Try a reset as fallback health check
                 probe = post("/reset", params={"platform": PLATFORM, "seed": SEED})
                 if not probe:
-                    print(f"  [WARN] Cannot confirm API health at {ENV_URL} -- proceeding anyway")
+                    print(f"  [WARN] Cannot confirm API health -- proceeding anyway", flush=True)
         except Exception as e:
-            print(f"  [WARN] Health check failed: {e} -- proceeding anyway")
+            print(f"  [WARN] Health check failed: {e} -- proceeding anyway", flush=True)
 
         results = []
         for task_id in ["task_1", "task_2", "task_3"]:
             try:
                 result = run_episode(task_id)
             except Exception as e:
-                print(f"  [ERROR] Unhandled error in run_episode({task_id}): {e}")
+                print(f"  [ERROR] run_episode({task_id}): {e}", flush=True)
+                print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
                 result = {
-                    "task_id":    task_id,
-                    "score":      0.0,
-                    "passed":     False,
-                    "steps":      0,
-                    "reward":     0.0,
-                    "engagement": 0.0,
-                    "retention":  0.0,
+                    "task_id": task_id, "score": 0.0, "passed": False,
+                    "steps": 0, "reward": 0.0, "engagement": 0.0, "retention": 0.0,
                 }
-                print(f"  score=0.0")
             results.append(result)
 
         # Summary
-        print(f"\n{'='*W}")
-        print(f"  FINAL RESULTS")
-        print(f"{'-'*W}")
+        print(f"\n{'='*W}", flush=True)
+        print(f"  FINAL RESULTS", flush=True)
+        print(f"{'-'*W}", flush=True)
         all_passed = True
         for r in results:
             try:
@@ -401,22 +426,21 @@ def main():
                       f"target={target}  "
                       f"eng={float(r.get('engagement',0.0)):.3f}  "
                       f"ret={float(r.get('retention',0.0)):.3f}  "
-                      f"steps={r.get('steps',0)}")
+                      f"steps={r.get('steps',0)}", flush=True)
                 if not r.get("passed"):
                     all_passed = False
             except Exception as e:
-                print(f"  [WARN] Could not print result row: {e}")
+                print(f"  [WARN] result row error: {e}", flush=True)
                 all_passed = False
 
-        print(f"{'-'*W}")
-        print(f"  Overall: {'ALL TASKS PASSED' if all_passed else 'SOME TASKS FAILED'}")
-        print(f"{'='*W}\n")
+        print(f"{'-'*W}", flush=True)
+        print(f"  Overall: {'ALL TASKS PASSED' if all_passed else 'SOME TASKS FAILED'}", flush=True)
+        print(f"{'='*W}\n", flush=True)
 
     except Exception as e:
-        print(f"\n[FATAL] Unhandled exception in main(): {e}")
-        print("score=0.0")
+        print(f"\n[FATAL] main() crashed: {e}", flush=True)
+        print("[END]   success=false steps=0 score=0.00 rewards=", flush=True)
 
-    # Always exit 0
     sys.exit(0)
 
 
@@ -424,6 +448,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"\n[FATAL] Top-level crash: {e}")
-        print("score=0.0")
+        print(f"\n[FATAL] Top-level crash: {e}", flush=True)
+        print("[END]   success=false steps=0 score=0.00 rewards=", flush=True)
         sys.exit(0)
