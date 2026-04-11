@@ -386,6 +386,11 @@ def _apply_soft_caps(rubric_score: float, obs, step_count: int) -> tuple:
     """
     Apply decision-pressure soft caps to rubric_score only.
     raw_score is NEVER modified. Returns (capped_score, cap_applied, cap_reason).
+
+    Simulates real-world algorithm penalties where poor early decisions limit
+    maximum achievable reach, even if later improvements are made.
+    This introduces commitment pressure — agents must decide not only how to
+    optimize, but when to stop optimizing.
     """
     score = rubric_score
     cap_applied = False

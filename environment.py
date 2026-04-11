@@ -177,6 +177,14 @@ def _compute_risk_score(hook_strength: float, avg_retention: float, pacing_score
       - low hook_strength  (weight 0.45) — first-impression failure is unrecoverable
       - low avg_retention  (weight 0.35) — audience already leaving
       - poor pacing_score  (weight 0.20) — structural incoherence
+
+    NOTE: risk_score does NOT affect reward directly. It is an advisory signal
+    for decision-making and evaluation only.
+
+    Risk regions:
+      0.0 – 0.4  Low    → Safe exploration
+      0.4 – 0.7  Medium → Careful optimization
+      > 0.7      High   → Limited recovery region
     """
     hook_risk    = max(0.0, 1.0 - hook_strength / 0.6)   # danger zone below 0.6
     ret_risk     = max(0.0, 1.0 - avg_retention / 0.5)   # danger zone below 0.5

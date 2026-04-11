@@ -387,9 +387,19 @@ Risk is computed from three weak-signal indicators:
 
 A `risk_score` above 0.7 indicates entry into a high-risk region where recovery to optimal performance becomes unlikely under remaining step constraints.
 
+> `risk_score` does NOT affect reward directly — it is an advisory signal for decision-making and evaluation.
+
+| Risk level | Range | Agent posture |
+|------------|-------|---------------|
+| Low | 0.0 – 0.4 | Safe exploration |
+| Medium | 0.4 – 0.7 | Careful optimization |
+| High | > 0.7 | Limited recovery region |
+
 ### Soft Score Caps
 
 The grader applies post-processing caps to `rubric_score` (the RL training signal) when the agent has made structurally poor decisions. `raw_score` is **never modified**.
+
+Soft caps simulate real-world algorithm penalties where poor early decisions limit maximum achievable reach, even if later improvements are made. This introduces **commitment pressure** — agents must decide not only how to optimize, but when to stop optimizing.
 
 | Condition | Effect |
 |-----------|--------|
