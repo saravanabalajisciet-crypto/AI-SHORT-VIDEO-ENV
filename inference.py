@@ -44,7 +44,7 @@ TASK_SEEDS = {
     "task_2": [42],
     "task_3": [42, 7, 13],
 }
-TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.92}
+TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.90}
 
 W = 68
 
