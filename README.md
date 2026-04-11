@@ -1,5 +1,3 @@
-
-
 ---
 title: AI Video Optimizer Env
 emoji: 🎬
@@ -18,35 +16,35 @@ An OpenEnv-compatible reinforcement learning environment where agents learn to e
 
 ## Why This Matters
 
-Short-form video is the dominant content format on the internet. On Reels, Shorts, and TikTok, the average viewer decides whether to keep watching **within the first 3 seconds**. A single bad edit decision — wrong scene order, weak hook, poor pacing — can tank a video's reach permanently.
+Every day, over 2 billion short-form videos are watched on Reels, Shorts, and TikTok. The difference between a video that goes viral and one that gets buried comes down to a handful of editorial decisions made in the first edit — scene order, hook strength, pacing, duration compliance, and production quality.
 
-This environment models that reality as a **sequential decision problem with irreversible consequences**:
+This environment models that exact problem as a **sequential decision task with real-world consequences**:
 
-- Cutting a scene cannot be undone
-- Hook placement determines the entire retention curve
-- Action order matters — boosting a hook before reordering wastes the boost
-- Over-editing (too many steps) is penalized via efficiency scoring
-- Each platform (Reels/Shorts/TikTok) has different duration constraints
+- Cutting the wrong scene is **irreversible** — it permanently changes the retention curve
+- Hook placement determines **everything** — the algorithm scores the first 3 seconds
+- Action order matters — boosting a hook before reordering wastes the boost permanently
+- Over-editing is penalized — efficiency is rewarded just like in real production
+- Each platform (Reels 30s / Shorts 60s / TikTok 60s) has hard duration constraints
 
-Agents must learn **editorial judgment** — the same skill human editors develop over years — through dense reward signals, structured feedback, and multi-scenario evaluation.
+Agents must learn **editorial judgment** — the same skill human editors develop over years — through dense reward signals, structured feedback, and multi-scenario evaluation across 5 diverse video scenarios.
 
 ---
 
 ## Tasks
 
-| Task   | Level  | Target | Scenario |
-|--------|--------|--------|----------|
+| Task   | Level  | Target | Description |
+|--------|--------|--------|-------------|
 | task_1 | Easy   | 0.65   | Remove low-engagement filler scenes, raise avg engagement > 0.60 |
 | task_2 | Medium | 0.78   | Platform compliance + retention >= 0.55 + production quality |
 | task_3 | Hard   | 0.875  | Full viral optimization — all metrics, correct action order, efficiency bonus |
 
-**Scenario seeds** (via `/scenarios`): 5 diverse starting conditions across platforms and difficulty levels — retention crisis, duration overrun, weak production, TikTok challenge.
+**5 Scenario seeds** (via `/scenarios`): viral hook, retention crisis, duration overrun, weak production, TikTok challenge — across all 3 platforms.
 
 ---
 
 ## Reward & Grader
 
-**Dense per-step reward:**
+**Dense per-step reward (agent gets signal after every action):**
 
 | Signal | Weight |
 |--------|--------|
@@ -62,7 +60,7 @@ Agents must learn **editorial judgment** — the same skill human editors develo
 
 **Penalties:** invalid actions (-0.30), removing high-engagement scenes (-0.20), repeated idempotent actions (-0.20), over-editing (-0.10).
 
-**Grader formula (weighted, sums to 1.0):**
+**Grader formula (deterministic, weights sum to 1.0):**
 
 ```
 score = engagement * 0.35 + retention * 0.15 + platform_compliance * 0.20
@@ -71,34 +69,7 @@ score = engagement * 0.35 + retention * 0.15 + platform_compliance * 0.20
       + efficiency_bonus (up to +0.02 for solving in <= 7 steps)
 ```
 
-**Efficiency tiers:** Elite (score >= 0.875 in <= 7 steps) → Optimal → Good → Acceptable.
-
----
-
-## Key Features
-
-- Multi-factor reward system covering engagement, retention, hook strength, pacing, transitions, cut smoothness, and audio sync
-- Deterministic episodes via seed control — same seed always produces the same video
-- Progressive difficulty with three benchmark tasks (Easy → Medium → Hard)
-- OpenEnv-compatible API — standard reset / step / grader loop
-- Built-in grader with weighted scoring and full breakdown
-- AI feedback endpoint with actionable coaching tips
-- Dockerized and fully reproducible
-- Supports three platforms: Reels (30s), Shorts (60s), TikTok (60s)
-
----
-
-## Live Demo
-
-API: `https://saravanabalajisara-ai-video-optimizer-env.hf.space`
-
-Swagger UI: `https://saravanabalajisara-ai-video-optimizer-env.hf.space/docs`
-
-ReDoc: `https://saravanabalajisara-ai-video-optimizer-env.hf.space/redoc`
-
-Space: `https://huggingface.co/spaces/saravanabalajisara/ai-video-optimizer-env`
-
-GitHub: `https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV`
+**Efficiency tiers:** Elite (>= 0.875 in <= 7 steps) → Optimal → Good → Acceptable.
 
 ---
 
@@ -106,183 +77,45 @@ GitHub: `https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV`
 
 | Task   | Level  | Score  | Passed | Steps |
 |--------|--------|--------|--------|-------|
-| task_1 | Easy   | 0.9082 | ✅     | 9     |
-| task_2 | Medium | 0.9082 | ✅     | 9     |
-| task_3 | Hard   | 0.9082 | ✅     | 9     |
-
-All three tasks pass with a single deterministic strategy in 9 steps — well within the 15-step limit.
-
----
-
-## Architecture
-
-```
-FastAPI (app.py)
-    │
-    ├── VideoOptimizationEnv (environment.py)
-    │       ├── Scene generation (seed-controlled)
-    │       ├── Action handlers (10 actions)
-    │       ├── Reward computation (dense, per-step)
-    │       └── Observation builder (retention curve, pacing, quality metrics)
-    │
-    ├── Pydantic models (models.py)
-    │       ├── Action — flexible input (action / action_type / type)
-    │       ├── Scene, Observation, State
-    │       └── Response shapes (StepResponse, GraderResponse, AIFeedback)
-    │
-    └── Docker (port 7860, non-root user, HF Spaces compatible)
-```
-
----
-
-## API Example
-
-**Reset the environment:**
-
-```json
-POST /reset
-{
-  "platform": "reels",
-  "seed": 42
-}
-```
-
-**Apply an action:**
-
-```json
-POST /step
-{
-  "action": "boost_hook"
-}
-```
-
-**With parameters:**
-
-```json
-POST /step
-{
-  "action": "cut_scene",
-  "parameters": {"scene_id": "scene_2"}
-}
-```
-
-**Get score:**
-
-```
-GET /grader
-```
+| task_1 | Easy   | 0.9182 | ✅     | 9     |
+| task_2 | Medium | 0.9182 | ✅     | 9     |
+| task_3 | Hard   | 0.9182 | ✅     | 9     |
 
 ---
 
 ## API Endpoints
 
-| Method | Endpoint    | Description                                      |
-|--------|-------------|--------------------------------------------------|
-| POST   | `/reset`    | Start a new episode. Accepts platform and seed.  |
-| POST   | `/step`     | Apply one action. Returns state, reward, done.   |
-| GET    | `/state`    | Read current state without advancing episode.    |
-| GET    | `/tasks`    | Return all three task definitions.               |
-| GET    | `/grader`   | Score the current state with full breakdown.     |
-| GET    | `/baseline` | Run the deterministic baseline on all tasks.     |
-| GET    | `/feedback` | AI coaching tips based on current state.         |
-| GET    | `/docs`     | Interactive Swagger UI.                          |
-| GET    | `/redoc`    | ReDoc API documentation.                         |
+| Method | Endpoint      | Description |
+|--------|---------------|-------------|
+| POST   | `/reset`      | Start new episode. Accepts platform and seed. |
+| POST   | `/step`       | Apply one action. Returns state, reward, done, info. |
+| GET    | `/state`      | Read current state without advancing episode. |
+| GET    | `/tasks`      | Return all three task definitions. |
+| GET    | `/grader`     | Score current state with full breakdown. |
+| GET    | `/baseline`   | Run deterministic baseline on all tasks. |
+| GET    | `/feedback`   | AI coaching tips based on current state. |
+| GET    | `/hint`       | Best next action suggestion with reasoning. |
+| GET    | `/scenarios`  | 5 diverse scenario seeds across platforms. |
+| GET    | `/trajectory` | Full episode action log with per-step metrics. |
+| GET    | `/efficiency` | Step efficiency rating and score-per-step analysis. |
+| GET    | `/docs`       | Interactive Swagger UI. |
 
 ---
 
 ## Action Space
 
-| Action               | Parameters                        | Effect                                                    |
-|----------------------|-----------------------------------|-----------------------------------------------------------|
-| `cut_scene`          | `{"scene_id": str}`               | Removes a scene. Penalizes removal of high-engagement scenes. |
-| `reorder_scenes`     | `{"order": [str, ...]}`           | Reorders all scenes. Hook-first gives +0.02 global lift.  |
-| `add_subtitles`      | `{}`                              | Enables subtitles. Lifts all scenes by +0.06.             |
-| `add_music`          | `{"genre": str}`                  | Boosts hook/content scenes by +0.12, others by +0.05.     |
-| `boost_hook`         | `{}`                              | hook_strength +0.30, engagement +0.20.                    |
-| `trim_duration`      | `{"target_seconds": float}`       | Removes lowest-engagement scenes to hit duration target.  |
-| `enhance_pacing`     | `{}`                              | Smooths engagement transitions. Global +0.02 lift.        |
-| `improve_transition` | `{}`                              | transition_quality +0.15, engagement +0.03.               |
-| `smooth_cut`         | `{}`                              | cut_smoothness +0.15, engagement +0.02.                   |
-| `sync_audio`         | `{}`                              | audio_sync_score +0.15, engagement +0.03.                 |
-
-All one-time actions are idempotent-guarded — repeating them returns a `-0.2` penalty.
-
----
-
-## Observation Space
-
-| Field                    | Description                                              |
-|--------------------------|----------------------------------------------------------|
-| `scenes`                 | Full list of scenes with per-scene quality metrics       |
-| `current_engagement_score` | Mean engagement across all scenes (0.0–1.0)            |
-| `avg_retention`          | Mean viewer retention across the episode (0.0–1.0)       |
-| `retention_curve`        | Per-scene retention values simulating viewer drop-off    |
-| `watch_time`             | Estimated watch time in seconds                          |
-| `hook_strength`          | Opening hook strength of the first scene (0.0–1.0)       |
-| `pacing_score`           | Smoothness of engagement transitions between scenes      |
-| `avg_transition_quality` | Mean transition quality across all scenes                |
-| `avg_cut_smoothness`     | Mean cut smoothness across all scenes                    |
-| `avg_audio_sync_score`   | Mean audio sync quality across all scenes                |
-| `total_duration`         | Total video length in seconds                            |
-| `platform_compliant`     | True if duration is within the platform limit            |
-| `hook_first`             | True if first scene is a hook/highlight with has_hook    |
-
----
-
-## Reward Function
-
-**Positive signals:**
-
-| Signal                        | Weight                        |
-|-------------------------------|-------------------------------|
-| Engagement improvement        | delta × 2.5                   |
-| Retention improvement         | delta × 2.0                   |
-| Hook strength improvement     | delta × 1.5                   |
-| Pacing improvement            | delta × 1.0                   |
-| Transition quality            | value × 0.05 (continuous)     |
-| Cut smoothness                | value × 0.05 (continuous)     |
-| Audio sync                    | value × 0.05 (continuous)     |
-| Platform compliance           | +0.20 on transition, +0.05 persistent |
-| Subtitles present             | +0.10 persistent              |
-| Hook-first structure          | +0.15 on transition, +0.03 persistent |
-| Engagement crosses 0.80       | +0.20 milestone               |
-| Hook strength crosses 0.70    | +0.15 milestone               |
-
-**Penalties:**
-
-| Condition                          | Penalty |
-|------------------------------------|---------|
-| Invalid scene_id in cut_scene      | -0.30   |
-| Removing a high-engagement scene   | -0.20   |
-| Repeating an idempotent action     | -0.20   |
-| Fewer than 3 scenes remaining      | -0.10   |
-| Action produces no measurable change | -0.05 |
-
----
-
-## Tasks
-
-| Task   | Level  | Target | Description                                                  |
-|--------|--------|--------|--------------------------------------------------------------|
-| task_1 | Easy   | 0.65   | Remove low-engagement scenes to raise avg engagement > 0.60  |
-| task_2 | Medium | 0.78   | Platform compliance + retention ≥ 0.55 + production quality  |
-| task_3 | Hard   | 0.875  | Full viral optimization — all metrics, correct action order  |
-
----
-
-## Grader Formula
-
-```
-score = engagement           * 0.35
-      + retention            * 0.15
-      + platform_compliance  * 0.20
-      + subtitles            * 0.10
-      + hook_strength        * 0.10
-      + pacing               * 0.05
-      + avg_transition_quality * 0.03
-      + avg_cut_smoothness     * 0.01
-      + avg_audio_sync_score   * 0.01
-```
+| Action | Parameters | Effect |
+|--------|-----------|--------|
+| `cut_scene` | `{"scene_id": str}` | Remove scene. Penalizes high-engagement cuts. |
+| `reorder_scenes` | `{"order": [str]}` | Reorder scenes. Hook-first gives +0.02 lift. |
+| `add_subtitles` | `{}` | Enable subtitles. +0.06 engagement lift. |
+| `add_music` | `{}` | Add music. +0.12 on hook/content scenes. |
+| `boost_hook` | `{}` | hook_strength +0.30, engagement +0.20. |
+| `trim_duration` | `{"target_seconds": float}` | Trim to platform limit. |
+| `enhance_pacing` | `{}` | Smooth engagement transitions. |
+| `improve_transition` | `{}` | transition_quality +0.15. |
+| `smooth_cut` | `{}` | cut_smoothness +0.15. |
+| `sync_audio` | `{}` | audio_sync_score +0.15. |
 
 ---
 
@@ -290,7 +123,7 @@ score = engagement           * 0.35
 
 ```bash
 pip install -r requirements.txt
-uvicorn app:app --reload
+uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
 ```bash
@@ -298,6 +131,20 @@ uvicorn app:app --reload
 docker build -t video-opt-env .
 docker run -p 7860:7860 video-opt-env
 ```
+
+```bash
+# Inference
+ENV_URL=http://localhost:7860 python inference.py
+```
+
+---
+
+## Live URLs
+
+- API: `https://saravanabalajisara-ai-video-optimizer-env.hf.space`
+- Docs: `https://saravanabalajisara-ai-video-optimizer-env.hf.space/docs`
+- Space: `https://huggingface.co/spaces/saravanabalajisara/ai-video-optimizer-env`
+- GitHub: `https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV`
 
 ---
 
@@ -308,10 +155,11 @@ docker run -p 7860:7860 video-opt-env
 ├── app.py            # FastAPI server — all endpoints
 ├── environment.py    # Core RL environment logic
 ├── models.py         # Pydantic models
-├── client.py         # Baseline agent client
-├── inference.py      # Inference runner
-├── requirements.txt  # Dependencies
-└── Dockerfile        # Container definition
+├── inference.py      # LLM-powered inference script
+├── server/app.py     # OpenEnv entry point
+├── requirements.txt  # Pinned dependencies
+├── openenv.yaml      # OpenEnv spec
+└── Dockerfile        # Container (python:3.11-slim-bullseye, port 7860)
 ```
 
 ---
