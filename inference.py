@@ -38,7 +38,13 @@ TIMEOUT     = 30
 MAX_RETRIES = 5
 MAX_STEPS   = 15
 
-TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.875}
+# FIX 3: Multi-seed evaluation for task_3 robustness
+TASK_SEEDS = {
+    "task_1": [42],
+    "task_2": [42],
+    "task_3": [42, 7, 13],
+}
+TASK_TARGETS = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.92}
 
 W = 68
 
@@ -177,17 +183,18 @@ def _get(d: dict, key: str, default=0.0):
 # Episode runner
 # ---------------------------------------------------------------------------
 
-def run_episode(task_id: str) -> dict:
+def run_episode(task_id: str, seed: int = 42) -> dict:
     """Run one full episode. Always returns a result dict, never raises."""
 
     default_result = {
         "task_id": task_id, "score": 0.0, "passed": False,
         "steps": 0, "reward": 0.0, "engagement": 0.0, "retention": 0.0,
+        "seed": seed,
     }
 
     try:
         print(f"\n{'-'*W}", flush=True)
-        print(f"  Task: {task_id.upper()}  |  Model: {MODEL_NAME}  |  Seed: {SEED}", flush=True)
+        print(f"  Task: {task_id.upper()}  |  Model: {MODEL_NAME}  |  Seed: {seed}", flush=True)
         print(f"{'-'*W}", flush=True)
 
         # -- [START] --------------------------------------------------------
@@ -196,7 +203,7 @@ def run_episode(task_id: str) -> dict:
         # Reset environment — retry up to 3 times
         state = {}
         for _reset_attempt in range(3):
-            state = post("/reset", params={"platform": PLATFORM, "seed": SEED})
+            state = post("/reset", params={"platform": PLATFORM, "seed": seed})
             if state:
                 break
             time.sleep(2)
@@ -371,6 +378,7 @@ def run_episode(task_id: str) -> dict:
             "reward":     round(total_reward, 4),
             "engagement": float(_get(final_obs, "current_engagement_score", 0.0)),
             "retention":  float(_get(final_obs, "avg_retention", 0.0)),
+            "seed":       seed,
         }
 
     except Exception as e:
@@ -407,17 +415,39 @@ def main():
 
         results = []
         for task_id in ["task_1", "task_2", "task_3"]:
-            try:
-                result = run_episode(task_id)
-            except Exception as e:
-                print(f"  [ERROR] run_episode({task_id}): {e}", flush=True)
-                print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
-                result = {
-                    "task_id": task_id, "score": 0.0, "passed": False,
-                    "steps": 0, "reward": 0.0, "engagement": 0.0, "retention": 0.0,
-                }
-            results.append(result)
-            time.sleep(2)  # let environment server settle between tasks
+            seeds = TASK_SEEDS.get(task_id, [42])
+            seed_results = []
+
+            for seed in seeds:
+                try:
+                    result = run_episode(task_id, seed=seed)
+                except Exception as e:
+                    print(f"  [ERROR] run_episode({task_id}, seed={seed}): {e}", flush=True)
+                    print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
+                    result = {
+                        "task_id": task_id, "score": 0.0, "passed": False,
+                        "steps": 0, "reward": 0.0, "engagement": 0.0,
+                        "retention": 0.0, "seed": seed,
+                    }
+                seed_results.append(result)
+                time.sleep(2)
+
+            # Average score across seeds
+            avg_score = round(sum(r["score"] for r in seed_results) / len(seed_results), 4)
+            target = TASK_TARGETS.get(task_id, 1.0)
+            best = max(seed_results, key=lambda r: r["score"])
+            summary = {
+                "task_id":    task_id,
+                "score":      avg_score,
+                "passed":     avg_score >= target,
+                "steps":      best["steps"],
+                "reward":     best["reward"],
+                "engagement": best["engagement"],
+                "retention":  best["retention"],
+                "seeds_run":  seeds,
+                "seed_scores": {r["seed"]: r["score"] for r in seed_results},
+            }
+            results.append(summary)
 
         # Summary
         print(f"\n{'='*W}", flush=True)
@@ -428,12 +458,15 @@ def main():
             try:
                 status = "PASS" if r.get("passed") else "FAIL"
                 target = TASK_TARGETS.get(r.get("task_id", ""), 1.0)
+                seed_info = ""
+                if r.get("seed_scores"):
+                    seed_info = "  seeds=" + str(r["seed_scores"])
                 print(f"  [{status}] {r.get('task_id','?'):<8} "
                       f"score={float(r.get('score',0.0)):.4f}  "
                       f"target={target}  "
                       f"eng={float(r.get('engagement',0.0)):.3f}  "
                       f"ret={float(r.get('retention',0.0)):.3f}  "
-                      f"steps={r.get('steps',0)}", flush=True)
+                      f"steps={r.get('steps',0)}{seed_info}", flush=True)
                 if not r.get("passed"):
                     all_passed = False
             except Exception as e:

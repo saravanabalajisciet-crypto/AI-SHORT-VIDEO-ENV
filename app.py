@@ -1,17 +1,17 @@
-from fastapi import FastAPI, HTTPException, Query, Request, Body
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from typing import List, Literal, Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import time
-import random
+import uuid
+import json
 
 from models import (
     Action, State, StepResponse, GraderResponse,
     TaskDefinition, BaselineResult, AIFeedback, ActionType,
 )
 from environment import VideoOptimizationEnv, PLATFORM_LIMITS, generate_feedback
-from pydantic import ValidationError
 
 app = FastAPI(
     title="AI Short-Form Video Optimization Environment",
@@ -21,17 +21,36 @@ app = FastAPI(
         "cut smoothness, audio sync, AI feedback, scenario-based tasks, "
         "action budgets, step efficiency scoring, and trajectory logging."
     ),
-    version="5.0.0",
+    version="6.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-env = VideoOptimizationEnv(platform="reels", seed=42)
+# ── FIX 2: Per-session environment isolation ──────────────────────────────────
+# Each session gets its own env instance keyed by episode_id.
+# Prevents concurrent request state corruption.
+_sessions: Dict[str, Dict[str, Any]] = {}
+_SESSION_TTL = 3600  # 1 hour
 
-# ── Episode trajectory log (ADD-ONLY) ─────────────────────────────────────────
-_trajectory: List[Dict[str, Any]] = []
-_episode_start_time: float = 0.0
-_action_budget: int = 10  # max efficient actions before penalty kicks in
+# Fallback single env for clients that don't use session_id
+_default_env = VideoOptimizationEnv(platform="reels", seed=42)
+_default_trajectory: List[Dict[str, Any]] = []
+
+
+def _get_session(session_id: str) -> Dict[str, Any]:
+    """Get or create a session."""
+    now = time.time()
+    # Evict stale sessions
+    stale = [k for k, v in _sessions.items() if now - v["created"] > _SESSION_TTL]
+    for k in stale:
+        del _sessions[k]
+    if session_id not in _sessions:
+        _sessions[session_id] = {
+            "env": VideoOptimizationEnv(platform="reels", seed=42),
+            "trajectory": [],
+            "created": now,
+        }
+    return _sessions[session_id]
 
 
 @app.exception_handler(RequestValidationError)
@@ -45,7 +64,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 def root():
     return {
         "name": "AI Short-Form Video Optimization Environment",
-        "version": "5.0.0",
+        "version": "6.0.0",
         "status": "running",
         "docs": "/docs",
         "endpoints": [
@@ -61,11 +80,6 @@ def health():
 
 
 # ── /reset ─────────────────────────────────────────────────────────────────────
-class ResetRequest(BaseModel):
-    platform: str = "reels"
-    seed: int = 42
-
-
 @app.post("/reset", response_model=State, tags=["Environment"])
 async def reset(
     request: Request,
@@ -74,30 +88,34 @@ async def reset(
 ):
     """
     Start a new episode. Returns the initial state.
-
-    Accepts query params OR JSON body:
-    - /reset?platform=reels&seed=42
-    - Body: {"platform": "reels", "seed": 42}
+    Accepts query params OR JSON body.
+    Optionally pass session_id in body for isolated multi-agent sessions.
     """
-    global _trajectory, _episode_start_time
+    global _default_trajectory
+    session_id = None
     try:
         body = await request.json()
         if isinstance(body, dict):
             platform = body.get("platform", platform)
             seed = int(body.get("seed", seed))
+            session_id = body.get("session_id")
     except Exception:
         pass
 
     if platform not in ("reels", "shorts", "tiktok"):
         raise HTTPException(status_code=400, detail=f"Invalid platform '{platform}'. Choose: reels, shorts, tiktok")
 
-    env.platform = platform
-    env.seed = seed
-    state = env.reset()
-
-    # Reset trajectory
-    _trajectory = []
-    _episode_start_time = time.time()
+    if session_id:
+        sess = _get_session(session_id)
+        sess["env"].platform = platform
+        sess["env"].seed = seed
+        state = sess["env"].reset()
+        sess["trajectory"] = []
+    else:
+        _default_env.platform = platform
+        _default_env.seed = seed
+        state = _default_env.reset()
+        _default_trajectory = []
 
     return state
 
@@ -107,21 +125,15 @@ async def reset(
 async def step(request: Request):
     """
     Apply one action. Returns (state, reward, done, info).
-
-    Accepts any of these JSON formats:
-    - {"action_type": "boost_hook"}
-    - {"action": "boost_hook"}
-    - {"type": "boost_hook"}
-
-    With optional parameters:
-    - {"action_type": "cut_scene", "parameters": {"scene_id": "scene_1"}}
+    Accepts: {"action_type": "boost_hook"} or {"action": "boost_hook"}
     """
+    global _default_trajectory
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON body.")
 
-    print(f"[/step] received: {body}")
+    session_id = body.pop("session_id", None) if isinstance(body, dict) else None
 
     try:
         action = Action(**body)
@@ -130,15 +142,20 @@ async def step(request: Request):
         msg = errors[0]["msg"] if errors else "Invalid action payload."
         raise HTTPException(status_code=400, detail=msg)
 
-    print(f"[/step] resolved action_type: {action.action_type}")
+    if session_id:
+        sess = _get_session(session_id)
+        env = sess["env"]
+        traj = sess["trajectory"]
+    else:
+        env = _default_env
+        traj = _default_trajectory
 
     try:
         state, reward, done, info = env.step(action)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Log to trajectory (ADD-ONLY)
-    _trajectory.append({
+    traj.append({
         "step": state.step_count,
         "action": action.action_type.value,
         "parameters": action.parameters,
@@ -157,7 +174,7 @@ async def step(request: Request):
 @app.get("/state", response_model=State, tags=["Environment"])
 def get_state():
     try:
-        return env.state
+        return _default_env.state
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -188,7 +205,7 @@ def get_tasks():
             level="medium",
             description=(
                 "Optimize for platform compliance and viewer retention: "
-                "total_duration <= 30 s, subtitles present, avg_retention >= 0.55. "
+                "total_duration <= 30s, subtitles present, avg_retention >= 0.55. "
                 "Also improve production quality (transition, cut, audio)."
             ),
             expected_behavior=(
@@ -206,23 +223,25 @@ def get_tasks():
             id="task_3",
             level="hard",
             description=(
-                "Full viral optimization: engagement >= 0.80, avg_retention >= 0.90, "
-                "hook_strength >= 0.70, avg_transition_quality >= 0.70, "
-                "platform compliance, subtitles, and hook-first ordering. "
-                "Requires all 10 actions in the correct sequence."
+                "Full viral optimization across 3 diverse seeds (42, 7, 13). "
+                "Must achieve engagement >= 0.82, avg_retention >= 0.92, "
+                "hook_strength >= 0.75, all production metrics >= 0.72, "
+                "platform compliance, subtitles, hook-first ordering — "
+                "AND solve efficiently in <= 10 steps per seed. "
+                "Requires correct action sequencing AND generalisation across seeds."
             ),
             expected_behavior=(
-                "Agent must execute in order: reorder_scenes -> boost_hook -> cut_scene(s) -> "
+                "Agent must: reorder_scenes -> boost_hook -> cut_scene(s) -> "
                 "enhance_pacing -> improve_transition -> smooth_cut -> sync_audio -> "
-                "add_subtitles -> add_music. Order matters for maximum reward."
+                "add_subtitles -> add_music. Order matters. Must work across seeds."
             ),
             evaluation_criteria=(
-                "current_engagement_score >= 0.80 AND avg_retention >= 0.90 AND "
-                "hook_strength >= 0.70 AND avg_transition_quality >= 0.70 AND "
-                "platform_compliant == True AND subtitles_present == True. "
-                "Grader score >= 0.875."
+                "current_engagement_score >= 0.82 AND avg_retention >= 0.92 AND "
+                "hook_strength >= 0.75 AND avg_transition_quality >= 0.72 AND "
+                "platform_compliant == True AND subtitles_present == True AND "
+                "steps <= 10. Grader score >= 0.92 averaged across seeds 42, 7, 13."
             ),
-            target_score=0.875,
+            target_score=0.92,
         ),
     ]
 
@@ -231,22 +250,11 @@ def get_tasks():
 @app.get("/grader", response_model=GraderResponse, tags=["Benchmark"])
 def grader():
     """
-    Deterministic multi-factor scoring (weights sum to 1.0):
-
-    score = engagement           * 0.35
-          + retention            * 0.15
-          + platform_compliance  * 0.20
-          + subtitles            * 0.10
-          + hook_strength        * 0.10
-          + pacing               * 0.05
-          + avg_transition_quality * 0.03
-          + avg_cut_smoothness     * 0.01
-          + avg_audio_sync_score   * 0.01
-
-    Extended: efficiency bonus/penalty based on steps used.
+    Deterministic multi-factor scoring. Weights sum to 1.0.
+    Includes step efficiency bonus.
     """
     try:
-        state = env.state
+        state = _default_env.state
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -278,39 +286,37 @@ def _compute_score(obs, step_count: int = 0) -> tuple:
         asy        * 0.01
     )
 
-    # ADD-ONLY: step efficiency bonus (reward fewer steps for same quality)
     efficiency_bonus = 0.0
     if step_count > 0:
         if step_count <= 7:
-            efficiency_bonus = 0.02   # solved efficiently
+            efficiency_bonus = 0.02
         elif step_count <= 10:
             efficiency_bonus = 0.01
         elif step_count > 13:
-            efficiency_bonus = -0.01  # over-edited
+            efficiency_bonus = -0.01
 
     score = round(min(weighted + efficiency_bonus, 1.0), 4)
     breakdown = {
-        "engagement":            round(eng        * 0.35, 4),
-        "retention":             round(retention  * 0.15, 4),
-        "platform_compliance":   round(compliance * 0.20, 4),
-        "subtitles":             round(subtitles  * 0.10, 4),
-        "hook_strength":         round(hook       * 0.10, 4),
-        "pacing":                round(pacing     * 0.05, 4),
-        "transition_quality":    round(tq         * 0.03, 4),
-        "cut_smoothness":        round(cs         * 0.01, 4),
-        "audio_sync":            round(asy        * 0.01, 4),
-        "efficiency_bonus":      round(efficiency_bonus, 4),
-        "final_score":           score,
+        "engagement":          round(eng        * 0.35, 4),
+        "retention":           round(retention  * 0.15, 4),
+        "platform_compliance": round(compliance * 0.20, 4),
+        "subtitles":           round(subtitles  * 0.10, 4),
+        "hook_strength":       round(hook       * 0.10, 4),
+        "pacing":              round(pacing     * 0.05, 4),
+        "transition_quality":  round(tq         * 0.03, 4),
+        "cut_smoothness":      round(cs         * 0.01, 4),
+        "audio_sync":          round(asy        * 0.01, 4),
+        "efficiency_bonus":    round(efficiency_bonus, 4),
+        "final_score":         score,
     }
     return score, breakdown
 
 
 # ── /feedback ──────────────────────────────────────────────────────────────────
-@app.get("/feedback", response_model=AIFeedback, tags=["WOW"])
+@app.get("/feedback", response_model=AIFeedback, tags=["Tools"])
 def feedback():
-    """AI coaching — actionable tips based on the current state."""
     try:
-        state = env.state
+        state = _default_env.state
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     obs = state.observation
@@ -318,16 +324,12 @@ def feedback():
     return generate_feedback(obs, score)
 
 
-# ── /hint (NEW tool-style endpoint) ───────────────────────────────────────────
+# ── /hint ──────────────────────────────────────────────────────────────────────
 @app.get("/hint", tags=["Tools"])
 def hint():
-    """
-    Tool-style helper: returns the single best next action to take
-    based on current observation gaps. Helps LLM agents reason about
-    what to do next without guessing.
-    """
+    """Best next action suggestion with reasoning. Helps LLM agents plan."""
     try:
-        state = env.state
+        state = _default_env.state
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -335,86 +337,49 @@ def hint():
     suggestions = []
 
     if not obs.hook_first or obs.hook_strength < 0.5:
-        suggestions.append({
-            "action": "reorder_scenes",
-            "reason": "No hook-first scene. Reorder to put highest hook_strength scene first.",
-            "priority": 10,
-        })
-    if obs.hook_strength < 0.7:
-        suggestions.append({
-            "action": "boost_hook",
-            "reason": f"hook_strength={obs.hook_strength:.2f} < 0.70. Boost it for +0.30 lift.",
-            "priority": 9,
-        })
+        suggestions.append({"action": "reorder_scenes", "priority": 10,
+            "reason": "No hook-first scene. Reorder to put highest hook_strength scene first."})
+    if obs.hook_strength < 0.75:
+        suggestions.append({"action": "boost_hook", "priority": 9,
+            "reason": f"hook_strength={obs.hook_strength:.2f} < 0.75. Boost for +0.30 lift."})
     if not obs.platform_compliant:
-        suggestions.append({
-            "action": "trim_duration",
-            "reason": f"Duration {obs.total_duration:.1f}s exceeds platform limit. Trim to 30s.",
-            "priority": 8,
-        })
-    if obs.avg_retention < 0.6:
-        suggestions.append({
-            "action": "enhance_pacing",
-            "reason": f"avg_retention={obs.avg_retention:.2f} < 0.60. Pacing fix helps retention.",
-            "priority": 7,
-        })
-    if obs.avg_transition_quality < 0.7:
-        suggestions.append({
-            "action": "improve_transition",
-            "reason": f"avg_transition_quality={obs.avg_transition_quality:.2f} < 0.70.",
-            "priority": 6,
-        })
-    if obs.avg_cut_smoothness < 0.7:
-        suggestions.append({
-            "action": "smooth_cut",
-            "reason": f"avg_cut_smoothness={obs.avg_cut_smoothness:.2f} < 0.70.",
-            "priority": 5,
-        })
-    if obs.avg_audio_sync_score < 0.7:
-        suggestions.append({
-            "action": "sync_audio",
-            "reason": f"avg_audio_sync_score={obs.avg_audio_sync_score:.2f} < 0.70.",
-            "priority": 4,
-        })
-    if not obs.subtitles_present:
-        suggestions.append({
-            "action": "add_subtitles",
-            "reason": "Subtitles not present. Adds +0.10 to grader score.",
-            "priority": 3,
-        })
-    if not obs.music_added:
-        suggestions.append({
-            "action": "add_music",
-            "reason": "Music not added. Boosts hook/content engagement by +0.12.",
-            "priority": 2,
-        })
+        suggestions.append({"action": "trim_duration", "priority": 8,
+            "reason": f"Duration {obs.total_duration:.1f}s exceeds limit. Trim to 30s."})
 
-    # Check for low-engagement scenes to cut
-    low_scenes = [
-        s for s in obs.scenes
-        if s.engagement_score < 0.30 and s.scene_type in ("filler", "transition")
-    ]
+    low_scenes = [s for s in obs.scenes
+                  if s.engagement_score < 0.30 and s.scene_type in ("filler", "transition")]
     if low_scenes and len(obs.scenes) > 3:
         worst = min(low_scenes, key=lambda s: s.engagement_score)
-        suggestions.append({
-            "action": "cut_scene",
+        suggestions.append({"action": "cut_scene", "priority": 8,
             "parameters": {"scene_id": worst.id},
-            "reason": f"Scene {worst.id} has engagement={worst.engagement_score:.2f}. Cut it.",
-            "priority": 8,
-        })
+            "reason": f"Scene {worst.id} engagement={worst.engagement_score:.2f}. Cut it."})
+
+    if obs.avg_retention < 0.6:
+        suggestions.append({"action": "enhance_pacing", "priority": 7,
+            "reason": f"avg_retention={obs.avg_retention:.2f} < 0.60."})
+    if obs.avg_transition_quality < 0.72:
+        suggestions.append({"action": "improve_transition", "priority": 6,
+            "reason": f"avg_transition_quality={obs.avg_transition_quality:.2f} < 0.72."})
+    if obs.avg_cut_smoothness < 0.72:
+        suggestions.append({"action": "smooth_cut", "priority": 5,
+            "reason": f"avg_cut_smoothness={obs.avg_cut_smoothness:.2f} < 0.72."})
+    if obs.avg_audio_sync_score < 0.72:
+        suggestions.append({"action": "sync_audio", "priority": 4,
+            "reason": f"avg_audio_sync_score={obs.avg_audio_sync_score:.2f} < 0.72."})
+    if not obs.subtitles_present:
+        suggestions.append({"action": "add_subtitles", "priority": 3,
+            "reason": "Subtitles absent. +0.10 grader score."})
+    if not obs.music_added:
+        suggestions.append({"action": "add_music", "priority": 2,
+            "reason": "Music absent. +0.12 on hook/content scenes."})
 
     if not suggestions:
-        return {
-            "best_action": None,
-            "reason": "Environment looks well-optimized. Call /grader to check score.",
-            "all_suggestions": [],
-            "steps_used": state.step_count,
-            "steps_remaining": state.max_steps - state.step_count,
-        }
+        return {"best_action": None, "reason": "Well optimized. Call /grader.",
+                "all_suggestions": [], "steps_used": state.step_count,
+                "steps_remaining": state.max_steps - state.step_count}
 
     suggestions.sort(key=lambda x: x["priority"], reverse=True)
     best = suggestions[0]
-
     return {
         "best_action": best["action"],
         "parameters": best.get("parameters", {}),
@@ -425,139 +390,87 @@ def hint():
     }
 
 
-# ── /scenarios (NEW) ──────────────────────────────────────────────────────────
+# ── /scenarios ─────────────────────────────────────────────────────────────────
 @app.get("/scenarios", tags=["Tools"])
 def scenarios():
-    """
-    Returns a set of diverse scenario seeds with descriptions.
-    Agents can use these seeds with /reset to test across varied starting conditions.
-    Adds scenario diversity beyond the default seed=42.
-    """
+    """5 diverse scenario seeds across platforms and difficulty levels."""
     return {
         "scenarios": [
-            {
-                "id": "scenario_viral_hook",
-                "seed": 42,
-                "platform": "reels",
-                "description": "Standard viral optimization. Strong hook available, needs sequencing.",
-                "difficulty": "medium",
-                "target_score": 0.875,
-            },
-            {
-                "id": "scenario_retention_crisis",
-                "seed": 7,
-                "platform": "reels",
-                "description": "High filler content causing retention drop. Agent must cut aggressively.",
-                "difficulty": "hard",
-                "target_score": 0.78,
-            },
-            {
-                "id": "scenario_duration_overrun",
-                "seed": 13,
-                "platform": "reels",
-                "description": "Video exceeds 30s limit. Trim + quality fix required.",
-                "difficulty": "medium",
-                "target_score": 0.75,
-            },
-            {
-                "id": "scenario_weak_production",
-                "seed": 99,
-                "platform": "shorts",
-                "description": "Good engagement but poor transitions, cuts, and audio sync.",
-                "difficulty": "medium",
-                "target_score": 0.80,
-            },
-            {
-                "id": "scenario_tiktok_challenge",
-                "seed": 21,
-                "platform": "tiktok",
-                "description": "TikTok format. Hook-first ordering critical for algorithm boost.",
-                "difficulty": "hard",
-                "target_score": 0.85,
-            },
+            {"id": "scenario_viral_hook",      "seed": 42,  "platform": "reels",
+             "description": "Standard viral optimization. Strong hook, needs sequencing.",
+             "difficulty": "medium", "target_score": 0.875},
+            {"id": "scenario_retention_crisis", "seed": 7,   "platform": "reels",
+             "description": "High filler content causing retention drop. Cut aggressively.",
+             "difficulty": "hard",   "target_score": 0.78},
+            {"id": "scenario_duration_overrun", "seed": 13,  "platform": "reels",
+             "description": "Video exceeds 30s limit. Trim + quality fix required.",
+             "difficulty": "medium", "target_score": 0.75},
+            {"id": "scenario_weak_production",  "seed": 99,  "platform": "shorts",
+             "description": "Good engagement but poor transitions, cuts, audio sync.",
+             "difficulty": "medium", "target_score": 0.80},
+            {"id": "scenario_tiktok_challenge", "seed": 21,  "platform": "tiktok",
+             "description": "TikTok format. Hook-first ordering critical.",
+             "difficulty": "hard",   "target_score": 0.85},
         ],
-        "usage": "POST /reset?platform=reels&seed=<seed> to start a scenario episode.",
+        "usage": "POST /reset?platform=<platform>&seed=<seed> to start a scenario.",
+        "task_3_seeds": [42, 7, 13],
+        "task_3_note": "task_3 is evaluated as average score across seeds 42, 7, 13.",
     }
 
 
-# ── /trajectory (NEW) ─────────────────────────────────────────────────────────
+# ── /trajectory ────────────────────────────────────────────────────────────────
 @app.get("/trajectory", tags=["Tools"])
 def trajectory():
-    """
-    Returns the full action trajectory of the current episode.
-    Useful for debugging agent reasoning and analyzing decision quality.
-    """
-    if not _trajectory:
-        return {
-            "episode_steps": 0,
-            "trajectory": [],
-            "total_reward": 0.0,
-            "message": "No steps taken yet. Call /reset then /step.",
-        }
-
-    total_reward = round(sum(t["reward"] for t in _trajectory), 4)
-    valid_steps = sum(1 for t in _trajectory if t["valid"])
-    invalid_steps = len(_trajectory) - valid_steps
-
+    """Full action trajectory of current episode with per-step metrics."""
+    if not _default_trajectory:
+        return {"episode_steps": 0, "trajectory": [], "total_reward": 0.0,
+                "message": "No steps taken yet."}
+    total_reward = round(sum(t["reward"] for t in _default_trajectory), 4)
+    valid_steps = sum(1 for t in _default_trajectory if t["valid"])
     return {
-        "episode_steps": len(_trajectory),
+        "episode_steps": len(_default_trajectory),
         "valid_steps": valid_steps,
-        "invalid_steps": invalid_steps,
+        "invalid_steps": len(_default_trajectory) - valid_steps,
         "total_reward": total_reward,
-        "avg_reward_per_step": round(total_reward / len(_trajectory), 4),
-        "trajectory": _trajectory,
-        "engagement_progression": [t["engagement"] for t in _trajectory],
-        "retention_progression": [t["retention"] for t in _trajectory],
+        "avg_reward_per_step": round(total_reward / len(_default_trajectory), 4),
+        "trajectory": _default_trajectory,
+        "engagement_progression": [t["engagement"] for t in _default_trajectory],
+        "retention_progression":  [t["retention"]  for t in _default_trajectory],
     }
 
 
-# ── /efficiency (NEW) ─────────────────────────────────────────────────────────
+# ── /efficiency ────────────────────────────────────────────────────────────────
 @app.get("/efficiency", tags=["Tools"])
 def efficiency():
-    """
-    Returns step efficiency analysis for the current episode.
-    Rewards agents that achieve high scores in fewer steps.
-    Penalizes wasted/invalid actions.
-    """
+    """Step efficiency rating: elite/optimal/good/acceptable."""
     try:
-        state = env.state
+        state = _default_env.state
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     obs = state.observation
     score, breakdown = _compute_score(obs, state.step_count)
-
     steps_used = state.step_count
-    max_steps = state.max_steps
-    invalid_count = sum(1 for t in _trajectory if not t.get("valid", True))
-    valid_count = steps_used - invalid_count
+    invalid_count = sum(1 for t in _default_trajectory if not t.get("valid", True))
 
-    # Efficiency rating
-    if steps_used == 0:
-        rating = "not_started"
-    elif score >= 0.875 and steps_used <= 7:
-        rating = "elite"
-    elif score >= 0.875 and steps_used <= 10:
-        rating = "optimal"
-    elif score >= 0.78 and steps_used <= 10:
-        rating = "good"
-    elif score >= 0.65:
-        rating = "acceptable"
-    else:
-        rating = "needs_improvement"
+    if steps_used == 0:       rating = "not_started"
+    elif score >= 0.92 and steps_used <= 7:  rating = "elite"
+    elif score >= 0.875 and steps_used <= 10: rating = "optimal"
+    elif score >= 0.78 and steps_used <= 10:  rating = "good"
+    elif score >= 0.65:       rating = "acceptable"
+    else:                     rating = "needs_improvement"
 
     return {
-        "score": score,
-        "steps_used": steps_used,
-        "steps_remaining": max_steps - steps_used,
-        "valid_actions": valid_count,
+        "score": score, "steps_used": steps_used,
+        "steps_remaining": state.max_steps - steps_used,
+        "valid_actions": steps_used - invalid_count,
         "invalid_actions": invalid_count,
         "efficiency_rating": rating,
         "efficiency_bonus": breakdown.get("efficiency_bonus", 0.0),
         "score_per_step": round(score / max(steps_used, 1), 4),
         "recommendation": (
             "Excellent efficiency!" if rating in ("elite", "optimal")
-            else "Try to achieve the same score in fewer steps."
+            else "Achieve same score in fewer steps for efficiency bonus."
         ),
     }
 
@@ -565,81 +478,129 @@ def efficiency():
 # ── /baseline ──────────────────────────────────────────────────────────────────
 @app.get("/baseline", response_model=List[BaselineResult], tags=["Benchmark"])
 def baseline():
-    """
-    Deterministic baseline agent across all three tasks (seed=42).
-    """
+    """Deterministic baseline agent across all three tasks."""
     results = []
+    task_seeds = {
+        "task_1": [42],
+        "task_2": [42],
+        "task_3": [42, 7, 13],  # FIX 1: task_3 evaluated across 3 seeds
+    }
 
     for task_id in ["task_1", "task_2", "task_3"]:
-        b_env = VideoOptimizationEnv(platform="reels", seed=42)
-        state = b_env.reset()
-        steps = 0
+        seeds = task_seeds[task_id]
+        seed_scores = []
 
-        def do(action_type: str, params: dict = None):
-            nonlocal state, steps
-            if state.done:
+        for seed in seeds:
+            b_env = VideoOptimizationEnv(platform="reels", seed=seed)
+            state = b_env.reset()
+            steps = 0
+
+            def do(action_type: str, params: dict = None):
+                nonlocal state, steps
+                if state.done:
+                    return
+                state, _, _, _ = b_env.step(
+                    Action(action_type=action_type, parameters=params or {})
+                )
+                steps += 1
+
+            scenes = state.observation.scenes
+            hooks = [s for s in scenes if s.scene_type in ("hook", "highlight") and s.has_hook]
+            if hooks:
+                best_hook = max(hooks, key=lambda s: s.hook_strength)
+                if scenes[0].id != best_hook.id:
+                    new_order = [best_hook.id] + [s.id for s in scenes if s.id != best_hook.id]
+                    do("reorder_scenes", {"order": new_order})
+
+            do("boost_hook")
+
+            for scene in sorted(
+                [s for s in state.observation.scenes
+                 if s.engagement_score < 0.30 and s.scene_type in ("filler", "transition")],
+                key=lambda s: s.engagement_score,
+            ):
+                if len(state.observation.scenes) <= 3:
+                    break
+                do("cut_scene", {"scene_id": scene.id})
+
+            if state.observation.total_duration > PLATFORM_LIMITS["reels"]:
+                do("trim_duration", {"target_seconds": PLATFORM_LIMITS["reels"]})
+
+            do("enhance_pacing")
+            if state.observation.avg_transition_quality < 0.72:
+                do("improve_transition")
+            if state.observation.avg_cut_smoothness < 0.72:
+                do("smooth_cut")
+            if state.observation.avg_audio_sync_score < 0.72:
+                do("sync_audio")
+            if not state.observation.subtitles_present:
+                do("add_subtitles")
+            do("add_music")
+
+            seed_scores.append(_compute_score(state.observation, steps)[0])
+
+        avg_score = round(sum(seed_scores) / len(seed_scores), 4)
+        target = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.92}[task_id]
+
+        # Use seed=42 state for result details
+        b_env2 = VideoOptimizationEnv(platform="reels", seed=42)
+        state2 = b_env2.reset()
+        steps2 = 0
+
+        def do2(action_type: str, params: dict = None):
+            nonlocal state2, steps2
+            if state2.done:
                 return
-            state, _, _, _ = b_env.step(
+            state2, _, _, _ = b_env2.step(
                 Action(action_type=action_type, parameters=params or {})
             )
-            steps += 1
+            steps2 += 1
 
-        scenes = state.observation.scenes
-        hook_candidates = [s for s in scenes if s.scene_type in ("hook", "highlight") and s.has_hook]
-        if hook_candidates:
-            best_hook = max(hook_candidates, key=lambda s: s.hook_strength)
-            if scenes[0].id != best_hook.id:
-                new_order = [best_hook.id] + [s.id for s in scenes if s.id != best_hook.id]
-                do("reorder_scenes", {"order": new_order})
-
-        do("boost_hook")
-
-        for scene in sorted(
-            [s for s in state.observation.scenes
-             if s.engagement_score < 0.30 and s.scene_type in ("filler", "transition")],
-            key=lambda s: s.engagement_score,
-        ):
-            if len(state.observation.scenes) <= 3:
+        scenes2 = state2.observation.scenes
+        hooks2 = [s for s in scenes2 if s.scene_type in ("hook", "highlight") and s.has_hook]
+        if hooks2:
+            best2 = max(hooks2, key=lambda s: s.hook_strength)
+            if scenes2[0].id != best2.id:
+                do2("reorder_scenes", {"order": [best2.id] + [s.id for s in scenes2 if s.id != best2.id]})
+        do2("boost_hook")
+        for scene in sorted([s for s in state2.observation.scenes
+                              if s.engagement_score < 0.30 and s.scene_type in ("filler", "transition")],
+                             key=lambda s: s.engagement_score):
+            if len(state2.observation.scenes) <= 3:
                 break
-            do("cut_scene", {"scene_id": scene.id})
+            do2("cut_scene", {"scene_id": scene.id})
+        if state2.observation.total_duration > PLATFORM_LIMITS["reels"]:
+            do2("trim_duration", {"target_seconds": PLATFORM_LIMITS["reels"]})
+        do2("enhance_pacing")
+        if state2.observation.avg_transition_quality < 0.72:
+            do2("improve_transition")
+        if state2.observation.avg_cut_smoothness < 0.72:
+            do2("smooth_cut")
+        if state2.observation.avg_audio_sync_score < 0.72:
+            do2("sync_audio")
+        if not state2.observation.subtitles_present:
+            do2("add_subtitles")
+        do2("add_music")
 
-        limit = PLATFORM_LIMITS["reels"]
-        if state.observation.total_duration > limit:
-            do("trim_duration", {"target_seconds": limit})
-
-        do("enhance_pacing")
-
-        if state.observation.avg_transition_quality < 0.70:
-            do("improve_transition")
-        if state.observation.avg_cut_smoothness < 0.70:
-            do("smooth_cut")
-        if state.observation.avg_audio_sync_score < 0.70:
-            do("sync_audio")
-        if not state.observation.subtitles_present:
-            do("add_subtitles")
-
-        do("add_music")
-
-        obs = state.observation
-        score, _ = _compute_score(obs, steps)
-        fb = generate_feedback(obs, score)
+        obs2 = state2.observation
+        fb = generate_feedback(obs2, avg_score)
 
         results.append(BaselineResult(
             task_id=task_id,
-            score=score,
-            passed=score >= {"task_1": 0.65, "task_2": 0.78, "task_3": 0.875}[task_id],
-            steps=steps,
-            final_engagement=obs.current_engagement_score,
-            final_retention=obs.avg_retention,
-            final_duration=obs.total_duration,
-            subtitles=obs.subtitles_present,
-            hook_first=obs.hook_first,
-            hook_strength=obs.hook_strength,
-            pacing_score=obs.pacing_score,
-            avg_transition_quality=obs.avg_transition_quality,
-            avg_cut_smoothness=obs.avg_cut_smoothness,
-            avg_audio_sync_score=obs.avg_audio_sync_score,
-            platform_compliant=obs.platform_compliant,
+            score=avg_score,
+            passed=avg_score >= target,
+            steps=steps2,
+            final_engagement=obs2.current_engagement_score,
+            final_retention=obs2.avg_retention,
+            final_duration=obs2.total_duration,
+            subtitles=obs2.subtitles_present,
+            hook_first=obs2.hook_first,
+            hook_strength=obs2.hook_strength,
+            pacing_score=obs2.pacing_score,
+            avg_transition_quality=obs2.avg_transition_quality,
+            avg_cut_smoothness=obs2.avg_cut_smoothness,
+            avg_audio_sync_score=obs2.avg_audio_sync_score,
+            platform_compliant=obs2.platform_compliant,
             feedback=fb,
         ))
 
@@ -648,17 +609,12 @@ def baseline():
 
 # ── /ws WebSocket ──────────────────────────────────────────────────────────────
 from fastapi import WebSocket, WebSocketDisconnect
-import json
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint for persistent multi-mode sessions.
-    """
     await websocket.accept()
     ws_env = VideoOptimizationEnv(platform="reels", seed=42)
-
     try:
         while True:
             data = await websocket.receive_text()
@@ -671,33 +627,24 @@ async def websocket_endpoint(websocket: WebSocket):
             msg_type = msg.get("type") or msg.get("action_type")
 
             if msg_type == "reset":
-                platform = msg.get("platform", "reels")
-                seed = int(msg.get("seed", 42))
-                ws_env.platform = platform
-                ws_env.seed = seed
+                ws_env.platform = msg.get("platform", "reels")
+                ws_env.seed = int(msg.get("seed", 42))
                 state = ws_env.reset()
                 await websocket.send_json({"type": "reset", "state": state.model_dump()})
 
             elif msg_type == "step":
                 action_str = msg.get("action") or msg.get("action_type") or msg.get("type")
-                parameters = msg.get("parameters", {})
                 try:
-                    action = Action(action_type=action_str, parameters=parameters)
+                    action = Action(action_type=action_str, parameters=msg.get("parameters", {}))
                     state, reward, done, info = ws_env.step(action)
-                    await websocket.send_json({
-                        "type": "step",
-                        "state": state.model_dump(),
-                        "reward": reward,
-                        "done": done,
-                        "info": info,
-                    })
+                    await websocket.send_json({"type": "step", "state": state.model_dump(),
+                                               "reward": reward, "done": done, "info": info})
                 except Exception as e:
                     await websocket.send_json({"error": str(e)})
 
             elif msg_type == "state":
                 try:
-                    state = ws_env.state
-                    await websocket.send_json({"type": "state", "state": state.model_dump()})
+                    await websocket.send_json({"type": "state", "state": ws_env.state.model_dump()})
                 except RuntimeError as e:
                     await websocket.send_json({"error": str(e)})
 
@@ -705,19 +652,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 try:
                     state = ws_env.state
                     score, breakdown = _compute_score(state.observation, state.step_count)
-                    await websocket.send_json({
-                        "type": "grader",
-                        "score": score,
-                        "breakdown": breakdown,
-                        "passed": score >= 0.875,
-                    })
+                    await websocket.send_json({"type": "grader", "score": score,
+                                               "breakdown": breakdown, "passed": score >= 0.875})
                 except RuntimeError as e:
                     await websocket.send_json({"error": str(e)})
-
             else:
-                await websocket.send_json({
-                    "error": f"Unknown type '{msg_type}'. Use: reset, step, state, grader"
-                })
+                await websocket.send_json({"error": f"Unknown type '{msg_type}'."})
 
     except WebSocketDisconnect:
         pass
