@@ -123,6 +123,8 @@ class GraderResponse(BaseModel):
     task_type: str = "trainable"  # trainable | probe
     # ── NEW ADDITION: grader metadata for decision-pressure transparency ──────
     grader_metadata: Dict[str, Any] = Field(default_factory=dict)
+    # ── SAFE EXTENSION: human-readable score explanation ──────────────────────
+    explanation: str = ""
 
 
 class AIFeedback(BaseModel):

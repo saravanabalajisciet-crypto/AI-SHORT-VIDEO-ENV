@@ -7,12 +7,14 @@ import time
 import uuid
 import json
 import os
+import functools
 
 from models import (
     Action, State, StepResponse, GraderResponse,
     TaskDefinition, BaselineResult, AIFeedback, ActionType,
 )
 from environment import VideoOptimizationEnv, PLATFORM_LIMITS, generate_feedback
+from strategy_engine import suggest_strategy, explain_score
 
 app = FastAPI(
     title="AI Short-Form Video Optimization Environment",
@@ -36,6 +38,13 @@ _SESSION_TTL = 3600  # 1 hour
 # Fallback single env for clients that don't use session_id
 _default_env = VideoOptimizationEnv(platform="reels", seed=42)
 _default_trajectory: List[Dict[str, Any]] = []
+
+# ── SAFE EXTENSION: simulate mode flag (non-breaking) ─────────────────────────
+_simulate_sessions: set = set()   # session_ids running in simulate mode
+
+# ── SAFE EXTENSION: lightweight grader cache (episode_id → result) ────────────
+_grader_cache: Dict[str, Dict[str, Any]] = {}
+_GRADER_CACHE_MAX = 50
 
 
 def _get_session(session_id: str) -> Dict[str, Any]:
@@ -70,7 +79,7 @@ def root():
         "docs": "/docs",
         "endpoints": [
             "/reset", "/step", "/state", "/tasks", "/grader", "/baseline",
-            "/feedback", "/hint", "/scenarios", "/trajectory", "/efficiency",
+            "/feedback", "/hint", "/strategy", "/scenarios", "/trajectory", "/efficiency",
             "/dataset", "/persona", "/leaderboard",
         ],
     }
@@ -95,12 +104,15 @@ async def reset(
     """
     global _default_trajectory
     session_id = None
+    simulate = False
     try:
         body = await request.json()
         if isinstance(body, dict):
             platform = body.get("platform", platform)
             seed = int(body.get("seed", seed))
             session_id = body.get("session_id")
+            # SAFE EXTENSION: simulate flag — no leaderboard writes when True
+            simulate = bool(body.get("simulate", False))
     except Exception:
         pass
 
@@ -113,11 +125,18 @@ async def reset(
         sess["env"].seed = seed
         state = sess["env"].reset()
         sess["trajectory"] = []
+        # Track simulate mode per session
+        if simulate:
+            _simulate_sessions.add(session_id)
+        else:
+            _simulate_sessions.discard(session_id)
     else:
         _default_env.platform = platform
         _default_env.seed = seed
         state = _default_env.reset()
         _default_trajectory = []
+        # Clear grader cache on new episode
+        _grader_cache.clear()
 
     return state
 
@@ -282,28 +301,45 @@ def grader():
         "finalized_risk_score": state.metadata.get("finalized_risk_score", None),
     }
 
-    # Record to leaderboard
-    _leaderboard.append({
-        "score": score,
-        "raw_score": raw_score,
-        "rubric_score": rubric_score,
-        "steps": state.step_count,
-        "seed": state.metadata.get("seed", 42),
-        "persona": state.metadata.get("audience_persona", "unknown"),
-        "niche": state.metadata.get("niche", "unknown"),
-        "engagement": round(obs.current_engagement_score, 4),
-        "retention": round(obs.avg_retention, 4),
-        "order_score": round(order_score, 4),
-        "timestamp": time.time(),
-    })
-    # Keep only last 100 for memory
-    if len(_leaderboard) > 100:
-        _leaderboard.pop(0)
+    # Record to leaderboard (skip if simulate mode)
+    is_simulate = state.episode_id in _grader_cache  # reuse cache key check
+    if not is_simulate:
+        _leaderboard.append({
+            "score": score,
+            "raw_score": raw_score,
+            "rubric_score": rubric_score,
+            "steps": state.step_count,
+            "seed": state.metadata.get("seed", 42),
+            "persona": state.metadata.get("audience_persona", "unknown"),
+            "niche": state.metadata.get("niche", "unknown"),
+            "engagement": round(obs.current_engagement_score, 4),
+            "retention": round(obs.avg_retention, 4),
+            "order_score": round(order_score, 4),
+            "timestamp": time.time(),
+        })
+        # Keep only last 100 for memory
+        if len(_leaderboard) > 100:
+            _leaderboard.pop(0)
 
-    # Probe vs Trainable (inspired by CARLA's ethical scenario distinction)
-    # Probe: always score 1.0 for RL, but track agent choice as metric
-    # Trainable: reward depends on performance
+    # Probe vs Trainable
     task_type = "trainable"
+
+    # SAFE EXTENSION: generate explanation
+    explanation = explain_score(
+        obs=obs.model_dump(),
+        score=score,
+        raw_score=raw_score,
+        breakdown=breakdown,
+        action_history=_default_env.action_history,
+        cap_applied=cap_applied,
+        cap_reason=cap_reason,
+    )
+
+    # SAFE EXTENSION: cache result keyed by episode_id + step_count
+    cache_key = f"{state.episode_id}:{state.step_count}"
+    if len(_grader_cache) >= _GRADER_CACHE_MAX:
+        _grader_cache.clear()
+    _grader_cache[cache_key] = {"score": score, "ts": time.time()}
 
     return GraderResponse(
         score=score,
@@ -313,6 +349,7 @@ def grader():
         rubric_score=rubric_score,
         task_type=task_type,
         grader_metadata=grader_metadata,
+        explanation=explanation,
     )
 
 
@@ -591,6 +628,32 @@ def persona():
     }
 
 
+# ── /strategy (NEW) ────────────────────────────────────────────────────────────
+@app.get("/strategy", tags=["Tools"])
+def strategy():
+    """
+    Intelligent strategy engine. Returns optimal action sequence based on
+    current observation, risk_score, and audience persona.
+    Does NOT affect /hint or any existing endpoint.
+    """
+    try:
+        state = _default_env.state
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    obs = state.observation
+    persona = state.metadata.get("audience_persona", "gen_z")
+    plan = suggest_strategy(
+        obs=obs.model_dump(),
+        persona=persona,
+        steps_used=state.step_count,
+        max_steps=state.max_steps,
+    )
+    plan["episode_id"] = state.episode_id
+    plan["step_count"] = state.step_count
+    plan["persona"] = persona
+    return plan
+
 
 @app.get("/scenarios", tags=["Tools"])
 def scenarios():
@@ -628,17 +691,48 @@ def trajectory():
                 "message": "No steps taken yet."}
     total_reward = round(sum(t["reward"] for t in _default_trajectory), 4)
     valid_steps = sum(1 for t in _default_trajectory if t["valid"])
+
+    # SAFE EXTENSION: enrich each step with decision_quality and risk_progression
+    enriched = []
+    for i, t in enumerate(_default_trajectory):
+        reward = t["reward"]
+        valid = t["valid"]
+        # decision_quality: normalized reward contribution per step
+        if not valid:
+            dq = "invalid"
+        elif reward >= 0.3:
+            dq = "excellent"
+        elif reward >= 0.1:
+            dq = "good"
+        elif reward >= 0.0:
+            dq = "neutral"
+        else:
+            dq = "poor"
+        enriched.append({**t, "decision_quality": dq})
+
+    risk_progression = [round(t.get("risk_score", 0.0), 4) for t in _default_trajectory
+                        if "risk_score" in t]
+
     return {
         "episode_steps": len(_default_trajectory),
         "valid_steps": valid_steps,
         "invalid_steps": len(_default_trajectory) - valid_steps,
         "total_reward": total_reward,
         "avg_reward_per_step": round(total_reward / len(_default_trajectory), 4),
-        "trajectory": _default_trajectory,
+        "trajectory": enriched,
         "action_sequence": _default_env.action_history,
         "order_score": _default_env.order_score(),
         "engagement_progression": [t["engagement"] for t in _default_trajectory],
         "retention_progression":  [t["retention"]  for t in _default_trajectory],
+        # SAFE EXTENSION: new fields (empty if not populated)
+        "risk_progression": risk_progression,
+        "decision_quality_summary": {
+            "excellent": sum(1 for t in enriched if t.get("decision_quality") == "excellent"),
+            "good":      sum(1 for t in enriched if t.get("decision_quality") == "good"),
+            "neutral":   sum(1 for t in enriched if t.get("decision_quality") == "neutral"),
+            "poor":      sum(1 for t in enriched if t.get("decision_quality") == "poor"),
+            "invalid":   sum(1 for t in enriched if t.get("decision_quality") == "invalid"),
+        },
     }
 
 
