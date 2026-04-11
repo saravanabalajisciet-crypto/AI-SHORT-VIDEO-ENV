@@ -260,7 +260,8 @@ def grader():
         raise HTTPException(status_code=400, detail=str(e))
 
     obs = state.observation
-    score, breakdown = _compute_score(obs, state.step_count)
+    order_score = _default_env.order_score()
+    score, breakdown = _compute_score(obs, state.step_count, order_score)
 
     # Record to leaderboard
     _leaderboard.append({
@@ -271,6 +272,7 @@ def grader():
         "niche": state.metadata.get("niche", "unknown"),
         "engagement": round(obs.current_engagement_score, 4),
         "retention": round(obs.avg_retention, 4),
+        "order_score": round(order_score, 4),
         "timestamp": time.time(),
     })
     # Keep only last 100 for memory
@@ -280,7 +282,7 @@ def grader():
     return GraderResponse(score=score, breakdown=breakdown, passed=score >= 0.875)
 
 
-def _compute_score(obs, step_count: int = 0) -> tuple:
+def _compute_score(obs, step_count: int = 0, order_score: float = 1.0) -> tuple:
     eng        = obs.current_engagement_score
     retention  = obs.avg_retention
     compliance = 1.0 if obs.platform_compliant else 0.0
@@ -312,7 +314,14 @@ def _compute_score(obs, step_count: int = 0) -> tuple:
         elif step_count > 13:
             efficiency_bonus = -0.01
 
-    score = round(min(weighted + efficiency_bonus, 1.0), 4)
+    # FIX A: order penalty — if actions were done out of optimal sequence, cap score
+    order_penalty = 0.0
+    if order_score < 0.5:
+        order_penalty = -0.08   # significant penalty for wrong order
+    elif order_score < 0.8:
+        order_penalty = -0.03   # mild penalty
+
+    score = round(min(weighted + efficiency_bonus + order_penalty, 1.0), 4)
     breakdown = {
         "engagement":          round(eng        * 0.35, 4),
         "retention":           round(retention  * 0.15, 4),
@@ -324,6 +333,8 @@ def _compute_score(obs, step_count: int = 0) -> tuple:
         "cut_smoothness":      round(cs         * 0.01, 4),
         "audio_sync":          round(asy        * 0.01, 4),
         "efficiency_bonus":    round(efficiency_bonus, 4),
+        "order_score":         round(order_score, 4),
+        "order_penalty":       round(order_penalty, 4),
         "final_score":         score,
     }
     return score, breakdown
@@ -542,6 +553,8 @@ def trajectory():
         "total_reward": total_reward,
         "avg_reward_per_step": round(total_reward / len(_default_trajectory), 4),
         "trajectory": _default_trajectory,
+        "action_sequence": _default_env.action_history,
+        "order_score": _default_env.order_score(),
         "engagement_progression": [t["engagement"] for t in _default_trajectory],
         "retention_progression":  [t["retention"]  for t in _default_trajectory],
     }

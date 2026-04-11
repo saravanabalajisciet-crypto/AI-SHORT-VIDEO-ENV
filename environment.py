@@ -169,7 +169,7 @@ def _pacing_score(scenes):
     return round(min(1.0, base + cs_bonus), 4)
 
 
-def _build_observation(scenes, platform, subtitles, music):
+def _build_observation(scenes, platform, subtitles, music, steps_remaining: int = 15):
     total_dur = _total_duration(scenes)
     rc = _retention_curve(scenes)
     avg_ret = round(sum(rc) / len(rc), 4) if rc else 0.0
@@ -190,6 +190,7 @@ def _build_observation(scenes, platform, subtitles, music):
         avg_transition_quality=_avg(scenes, "transition_quality"),
         avg_cut_smoothness=_avg(scenes, "cut_smoothness"),
         avg_audio_sync_score=_avg(scenes, "audio_sync_score"),
+        steps_remaining=steps_remaining,
     )
 
 
@@ -250,8 +251,8 @@ class VideoOptimizationEnv:
         self._audio_synced = False
         self._finalized = False
         self._persona = _get_persona(self.seed)
+        self._action_history: List[str] = []  # FIX A: track action order
 
-        # Get real video context if available
         real_video_id = None
         real_niche = None
         if _REAL_VIDEOS:
@@ -259,7 +260,8 @@ class VideoOptimizationEnv:
             real_video_id = v.get("id")
             real_niche = v.get("niche")
 
-        obs = _build_observation(scenes, self.platform, subtitles=False, music=False)
+        obs = _build_observation(scenes, self.platform, subtitles=False, music=False,
+                                  steps_remaining=MAX_STEPS)
         self._state = State(
             episode_id=str(uuid.uuid4()),
             step_count=0,
@@ -290,6 +292,13 @@ class VideoOptimizationEnv:
         obs = deepcopy(self._state.observation)
         reward = 0.0
         info = {"action": action.action_type, "valid": True}
+
+        # FIX A: track action order for order-sensitive grader
+        self._action_history.append(action.action_type.value)
+
+        # FIX B: small stochastic noise per step (seed-controlled for reproducibility)
+        _noise_rng = random.Random(self.seed + self._state.step_count * 31)
+        _noise = lambda: _noise_rng.uniform(-0.015, 0.015)
 
         prev_eng = obs.current_engagement_score
         prev_ret = obs.avg_retention
@@ -354,16 +363,18 @@ class VideoOptimizationEnv:
             else:
                 self._hook_boosted = True
                 first = obs.scenes[0]
+                # FIX B: add noise to boost magnitude
+                boost_noise = _noise()
                 obs.scenes[0] = first.model_copy(update={
-                    "hook_strength": min(1.0, round(first.hook_strength + 0.30, 3)),
-                    "engagement_score": min(1.0, round(first.engagement_score + 0.20, 3)),
+                    "hook_strength": min(1.0, round(first.hook_strength + 0.30 + boost_noise, 3)),
+                    "engagement_score": min(1.0, round(first.engagement_score + 0.20 + boost_noise, 3)),
                     "transition_quality": min(1.0, round(first.transition_quality + 0.10, 3)),
                     "has_hook": True,
                     "scene_type": "hook" if first.scene_type not in ("hook", "highlight") else first.scene_type,
                 })
                 if len(obs.scenes) > 1:
                     second = obs.scenes[1]
-                    obs.scenes[1] = second.model_copy(update={"engagement_score": min(1.0, round(second.engagement_score + 0.10, 3))})
+                    obs.scenes[1] = second.model_copy(update={"engagement_score": min(1.0, round(second.engagement_score + 0.10 + _noise(), 3))})
 
         elif action.action_type == ActionType.trim_duration:
             target = float(action.parameters.get("target_seconds", PLATFORM_LIMITS.get(self.platform, 30.0)))
@@ -463,7 +474,10 @@ class VideoOptimizationEnv:
                 # Force episode done after finalize
                 self._state.done = True
 
-        obs = _build_observation(obs.scenes, self.platform, subtitles=obs.subtitles_present, music=self._music_applied)
+        obs = _build_observation(obs.scenes, self.platform,
+                                  subtitles=obs.subtitles_present,
+                                  music=self._music_applied,
+                                  steps_remaining=max(0, MAX_STEPS - self._state.step_count - 1))
 
         if info["valid"]:
             reward += (obs.current_engagement_score - prev_eng) * 2.5
@@ -512,3 +526,36 @@ class VideoOptimizationEnv:
         if self._state is None:
             raise RuntimeError("Call reset() first.")
         return deepcopy(self._state)
+
+    @property
+    def action_history(self) -> List[str]:
+        """FIX A: Returns the ordered list of actions taken this episode."""
+        return list(self._action_history)
+
+    def order_score(self) -> float:
+        """
+        FIX A: Order-sensitive scoring for task_3.
+        Optimal sequence: reorder_scenes -> boost_hook -> cut_scene ->
+        enhance_pacing -> improve_transition -> smooth_cut -> sync_audio ->
+        add_subtitles -> add_music -> finalize_edit
+        Returns 0.0-1.0 based on how well the agent followed optimal order.
+        """
+        optimal = [
+            "reorder_scenes", "boost_hook", "cut_scene",
+            "enhance_pacing", "improve_transition", "smooth_cut",
+            "sync_audio", "add_subtitles", "add_music",
+        ]
+        history = [a for a in self._action_history if a in optimal]
+        if not history:
+            return 0.0
+        # Score based on longest common subsequence with optimal order
+        score = 0.0
+        opt_idx = 0
+        for act in history:
+            if opt_idx < len(optimal) and act == optimal[opt_idx]:
+                score += 1.0
+                opt_idx += 1
+            elif act in optimal:
+                # Out of order — partial credit
+                score += 0.3
+        return round(min(1.0, score / len(optimal)), 4)

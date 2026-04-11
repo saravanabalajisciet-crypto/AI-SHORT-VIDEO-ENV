@@ -85,9 +85,11 @@ class Observation(BaseModel):
     hook_strength: float
     pacing_score: float
     # ── production quality metrics ────────────────────────────────────────────
-    avg_transition_quality: float       # mean of scene.transition_quality
-    avg_cut_smoothness: float           # mean of scene.cut_smoothness
-    avg_audio_sync_score: float         # mean of scene.audio_sync_score
+    avg_transition_quality: float
+    avg_cut_smoothness: float
+    avg_audio_sync_score: float
+    # ── FIX B: agent-visible budget ───────────────────────────────────────────
+    steps_remaining: int = 15           # how many steps left in episode
 
 
 # ── State ──────────────────────────────────────────────────────────────────────
