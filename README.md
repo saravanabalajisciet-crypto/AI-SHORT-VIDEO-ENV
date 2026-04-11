@@ -28,7 +28,19 @@ The difference between a video that goes viral and one that gets buried comes do
 
 This environment models that exact problem as a **sequential decision task with real-world consequences**. Agents must learn editorial judgment — the same skill human editors develop over years — through dense reward signals, real video data, and multi-scenario evaluation.
 
-**Real-world grounding:** Scene data is derived from 50 real-world inspired video profiles across 30 niches (fitness, cooking, comedy, gaming, finance, travel, tech, beauty, and more), reflecting actual engagement patterns from public creator analytics research (2023-2024).
+**Real-world grounding:** Scene data is derived from 50 video profiles across 30 niches. The first 10 videos are directly grounded in published research:
+- [opus.pro](https://www.opus.pro/blog/tiktok-length-format-retention-data): Analysis of 500 TikTok videos — 70% retention = 4.3x more impressions than 40% retention
+- [creatorsjet.com](https://www.creatorsjet.com/blog/best-instagram-reel-length-for-engagement-based-on-500-viral-videos): 500 viral Instagram Reels engagement analysis
+- [socialinsider.io](https://www.socialinsider.io/social-media-benchmarks/social-media-video-statistics): 2025 Social Media Video Performance Statistics
+- [vidico.com](https://vidico.com/news/instagram-reels-statistics): Reels organic reach dropped 50% in 2023 — hook-first is now mandatory
+- [dmnews.com](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three): 75% of viewers click away before midpoint
+
+Key findings encoded in the environment:
+- Hook window: first **3 seconds** determine viewer retention
+- Optimal TikTok length: **21-34s** for completion rate
+- 70% retention → **4.3x more impressions** than 40% retention
+- Pattern interrupts every **3-5 seconds** maintain attention
+- Poor audio sync reduces watch time by **23%**
 
 ---
 

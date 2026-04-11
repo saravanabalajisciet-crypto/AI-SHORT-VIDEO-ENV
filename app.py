@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError
 import time
 import uuid
 import json
+import os
 
 from models import (
     Action, State, StepResponse, GraderResponse,
@@ -462,15 +463,19 @@ def dataset_info():
     Demonstrates real-world grounding of the environment.
     """
     from environment import _REAL_VIDEOS, _AUDIENCE_PERSONAS, _ENGAGEMENT_PATTERNS
+    d = json.load(open(os.path.join(os.path.dirname(__file__), "video_dataset.json"))) if True else {}
     return {
         "total_videos": len(_REAL_VIDEOS),
+        "real_research_grounded": d.get("real_video_count", 0),
         "platforms": list(set(v["platform"] for v in _REAL_VIDEOS)),
         "niches": list(set(v["niche"] for v in _REAL_VIDEOS)),
         "viral_count": sum(1 for v in _REAL_VIDEOS if v.get("viral")),
         "non_viral_count": sum(1 for v in _REAL_VIDEOS if not v.get("viral")),
         "engagement_patterns": _ENGAGEMENT_PATTERNS,
         "audience_personas": list(_AUDIENCE_PERSONAS.keys()),
-        "data_source": "Real-world inspired video metadata from public creator analytics research",
+        "data_sources": d.get("data_sources", []),
+        "research_findings": d.get("research_findings", {}),
+        "data_source": "10 videos grounded in published research (opus.pro, socialinsider, vidico, dmnews). 40 videos derived from real engagement patterns.",
         "usage": "Scenes are initialized from this dataset. Each seed maps to a specific video.",
     }
 
