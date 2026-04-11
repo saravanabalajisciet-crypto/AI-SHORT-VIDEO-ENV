@@ -1,5 +1,5 @@
 name: ai-short-video-optimization
-version: "5.0.0"
+version: "6.0.0"
 description: >
   OpenEnv-compatible RL environment that trains agents to edit short-form videos
   (Reels / Shorts / TikTok) for maximum viral engagement. Features retention curves,

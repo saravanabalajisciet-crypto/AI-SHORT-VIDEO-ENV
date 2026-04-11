@@ -370,7 +370,7 @@ def feedback():
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     obs = state.observation
-    score, _ = _compute_score(obs, state.step_count)
+    score, _, _, _ = _compute_score(obs, state.step_count)
     return generate_feedback(obs, score)
 
 
