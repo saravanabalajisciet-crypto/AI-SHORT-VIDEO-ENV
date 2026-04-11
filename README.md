@@ -385,7 +385,7 @@ Risk is computed from three weak-signal indicators:
 | `avg_retention` | < 0.5 | 35% |
 | `pacing_score` | < 0.4 | 20% |
 
-A `risk_score` above 0.7 means the agent is approaching a point of no return.
+A `risk_score` above 0.7 indicates entry into a high-risk region where recovery to optimal performance becomes unlikely under remaining step constraints.
 
 ### Soft Score Caps
 
