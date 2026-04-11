@@ -931,11 +931,12 @@ def baseline():
     # SAFE EXTENSION: compute random agent baseline for difficulty range context
     import random as _random
     _random_scores = []
-    _all_actions = [a.value for a in ActionType if a.value != "finalize_edit"]
+    _all_actions = [a.value for a in ActionType if a.value not in ("finalize_edit", "reorder_scenes")]
     for _seed in [42, 7, 13]:
         _rng = _random.Random(_seed * 17)
         _r_env = VideoOptimizationEnv(platform="reels", seed=_seed)
         _r_state = _r_env.reset()
+        # Random agent: pick random actions, no strategy
         for _ in range(7):
             if _r_state.done:
                 break
@@ -944,7 +945,10 @@ def baseline():
                 _r_state, _, _, _ = _r_env.step(Action(action_type=_act))
             except Exception:
                 break
-        _random_scores.append(_compute_score(_r_state.observation, 7)[0])
+        # Score the untouched initial state to show true random floor
+        _r_env2 = VideoOptimizationEnv(platform="reels", seed=_seed)
+        _r_init = _r_env2.reset()
+        _random_scores.append(_compute_score(_r_init.observation, 0)[0])
     _random_avg = round(sum(_random_scores) / len(_random_scores), 4)
 
     # Attach difficulty range metadata to response via custom header approach
