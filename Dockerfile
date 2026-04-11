@@ -16,6 +16,7 @@ COPY environment.py .
 COPY models.py .
 COPY client.py .
 COPY inference.py .
+COPY strategy_engine.py .
 COPY openenv.yaml .
 COPY video_dataset.json .
 COPY server/ ./server/
