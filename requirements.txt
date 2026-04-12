@@ -10,3 +10,4 @@ h11==0.16.0
 httptools==0.7.1
 python-multipart==0.0.21
 openai>=1.30.0
+gradio>=4.0.0

@@ -29,6 +29,15 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# ── Mount Gradio UI at /ui (non-breaking — API unchanged) ─────────────────────
+try:
+    import gradio as gr
+    from gradio_ui import build_ui
+    _gradio_app = build_ui()
+    app = gr.mount_gradio_app(app, _gradio_app, path="/ui")
+except Exception as _e:
+    pass  # Gradio optional — API works without it
+
 # ── FIX 2: Per-session environment isolation ──────────────────────────────────
 # Each session gets its own env instance keyed by episode_id.
 # Prevents concurrent request state corruption.

@@ -17,6 +17,7 @@ COPY models.py .
 COPY client.py .
 COPY inference.py .
 COPY strategy_engine.py .
+COPY gradio_ui.py .
 COPY test_environment.py .
 COPY openenv.yaml .
 COPY video_dataset.json .
