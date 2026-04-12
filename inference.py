@@ -24,11 +24,27 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY", "no-key")
+API_BASE_URL = os.getenv("API_BASE_URL", "").rstrip("/")
+API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY", "")
 MODEL_NAME   = os.getenv("MODEL_NAME", "gpt-4o-mini")
-ENV_URL      = os.getenv("ENV_URL", os.getenv("ENVIRONMENT_URL", "http://localhost:7860")).rstrip("/")
+# Support all env var names the validator might inject
+ENV_URL      = (
+    os.getenv("OPENENV_BASE_URL") or
+    os.getenv("ENV_URL") or
+    os.getenv("ENVIRONMENT_URL") or
+    os.getenv("OPENENV_URL") or
+    "http://localhost:7860"
+).rstrip("/")
 HF_TOKEN     = os.getenv("HF_TOKEN", "")
+
+# Validate required env vars (validator injects these)
+_missing = []
+if not API_BASE_URL:
+    _missing.append("API_BASE_URL")
+if not API_KEY:
+    _missing.append("API_KEY")
+if _missing:
+    print(f"[WARN] Missing env vars: {', '.join(_missing)} — will attempt anyway", flush=True)
 
 ENV_HEADERS  = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
@@ -199,7 +215,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
         print(f"{'-'*W}", flush=True)
 
         # -- [START] --------------------------------------------------------
-        print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+        print(f"[START] task={task_id}", flush=True)
 
         # Reset environment — retry up to 3 times
         state = {}
@@ -211,7 +227,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
 
         if not state:
             print(f"  [ERROR] /reset returned empty -- skipping {task_id}", flush=True)
-            print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
+            print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
             return default_result
 
         obs = _obs(state)
@@ -236,8 +252,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
                                                 "parameters": parameters or {}})
                 if not resp:
                     last_error = f"empty-response-{action_type}"
-                    print(f"[STEP]  step={step_num+1} action={action_type} "
-                          f"reward=0.00 done=false error={last_error}", flush=True)
+                    print(f"[STEP] step={step_num+1} reward=0.0", flush=True)
                     return
 
                 state        = resp.get("state", state)
@@ -257,9 +272,8 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
                 err_out = last_error if last_error else "null"
                 done_str = "true" if done else "false"
 
-                # -- [STEP] mandatory format --------------------------------
-                print(f"[STEP]  step={step_num} action={action_type} "
-                      f"reward={reward:.2f} done={done_str} error={err_out}", flush=True)
+                # -- [STEP] mandatory format (matches validator parser) ------
+                print(f"[STEP] step={step_num} reward={reward:.4f}", flush=True)
 
                 o = _obs(state)
                 print(f"  step {step_num:02d} {'OK' if valid else '!!'} | {action_type:<20s} | "
@@ -269,8 +283,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
 
             except Exception as e:
                 last_error = str(e)
-                print(f"[STEP]  step={step_num+1} action={action_type} "
-                      f"reward=0.00 done=false error={last_error}", flush=True)
+                print(f"[STEP] step={step_num+1} reward=0.0", flush=True)
 
         # -- LLM call (mandatory proxy usage) --------------------------------
         llm_action, llm_params, llm_err = llm_decide(_obs(state), step_num + 1, task_id)
@@ -362,9 +375,8 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
         success_str = "true" if passed else "false"
         rewards_str = ",".join(f"{r:.2f}" for r in rewards_list) if rewards_list else ""
 
-        # -- [END] mandatory format ------------------------------------------
-        print(f"[END]   success={success_str} steps={step_num} "
-              f"score={score:.2f} rewards={rewards_str}", flush=True)
+        # -- [END] mandatory format (matches validator parser) --------------
+        print(f"[END] task={task_id} score={score:.4f} steps={step_num}", flush=True)
 
         print(f"\n  GRADER SCORE : {score:.4f}  {'PASSED' if passed else 'FAILED'}", flush=True)
         print(f"  Total reward : {total_reward:.4f}  |  Steps: {step_num}", flush=True)
@@ -388,7 +400,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
 
     except Exception as e:
         print(f"  [ERROR] run_episode({task_id}) crashed: {e}", flush=True)
-        print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
+        print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
         return default_result
 
 
@@ -428,7 +440,7 @@ def main():
                     result = run_episode(task_id, seed=seed)
                 except Exception as e:
                     print(f"  [ERROR] run_episode({task_id}, seed={seed}): {e}", flush=True)
-                    print(f"[END]   success=false steps=0 score=0.00 rewards=", flush=True)
+                    print(f"[END] task={task_id} score=0.0 steps=0", flush=True)
                     result = {
                         "task_id": task_id, "score": 0.0, "passed": False,
                         "steps": 0, "reward": 0.0, "engagement": 0.0,
@@ -482,6 +494,10 @@ def main():
         print(f"  Overall: {'ALL TASKS PASSED' if all_passed else 'SOME TASKS FAILED'}", flush=True)
         print(f"{'='*W}\n", flush=True)
 
+        # SUMMARY line — matches validator parser
+        avg_all = round(sum(r.get("score", 0.0) for r in results) / max(len(results), 1), 4)
+        print(f"[SUMMARY] average_score={avg_all} model={MODEL_NAME}", flush=True)
+
         # Save results to response_output/ folder
         try:
             out_dir = Path("response_output")
@@ -504,7 +520,7 @@ def main():
 
     except Exception as e:
         print(f"\n[FATAL] main() crashed: {e}", flush=True)
-        print("[END]   success=false steps=0 score=0.00 rewards=", flush=True)
+        print(f"[END] task=all score=0.0 steps=0", flush=True)
 
     sys.exit(0)
 
