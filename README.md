@@ -271,6 +271,7 @@ This lets evaluators distinguish agents that commit confidently at low risk vs. 
 | GET | `/scenarios` | 5 diverse scenario seeds across platforms. |
 | GET | `/persona` | Current audience persona + scoring weights. |
 | GET | `/dataset` | Real video dataset metadata + research citations. |
+| GET | `/analyze_url` | **Live YouTube oEmbed API** — fetch real video metadata + scene breakdown. |
 | GET | `/leaderboard` | Top scores across all graded episodes. |
 | GET | `/ui` | **Live Gradio demo** — interactive environment explorer. |
 

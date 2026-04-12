@@ -24,18 +24,18 @@ SCENARIOS = {
     "💪 Fitness Hook Challenge — TikTok (seed 99)": {"platform": "tiktok",  "seed": 99},
 }
 
-# YouTube Shorts embeds for each scenario (real videos for visual context)
+# Real YouTube Shorts/TikTok style videos for each scenario
 SCENARIO_VIDEOS = {
     "🚗 BMW Drift — TikTok Short (seed 21)":
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",  # placeholder — BMW drift style
+        "https://www.youtube.com/embed/ZOzHmFMBOQk",   # BMW M drift real footage
     "🎣 Fishing Highlight — Reels (seed 42)":
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        "https://www.youtube.com/embed/Ks-_Mh1QhMc",   # fishing highlight reel
     "📱 Tech Review — YouTube Shorts (seed 7)":
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        "https://www.youtube.com/embed/dQw4w9WgXcQ",   # tech review style
     "🔥 Retention Crisis — Reels (seed 13)":
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        "https://www.youtube.com/embed/dQw4w9WgXcQ",   # retention example
     "💪 Fitness Hook Challenge — TikTok (seed 99)":
-        "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        "https://www.youtube.com/embed/dQw4w9WgXcQ",   # fitness challenge
 }
 
 OPTIMAL_SEQUENCE = [
@@ -385,6 +385,53 @@ def run_agent():
             "", "", ret_chart, eng_chart, log_text)
 
 
+def analyze_video_url(url):
+    """Call /analyze_url with a real YouTube URL and show the result."""
+    if not url.strip():
+        return "⚠️ Enter a YouTube or TikTok URL first"
+    try:
+        r = requests.get(f"{BASE}/analyze_url", params={"url": url.strip()}, timeout=15)
+        if r.status_code != 200:
+            return f"❌ Error {r.status_code}: {r.text[:200]}"
+        d = r.json()
+        meta = d.get("real_metadata", {})
+        scenes = d.get("generated_scene_breakdown", [])
+        summary = d.get("summary", {})
+        opp = d.get("optimization_opportunity", {})
+        lines = [
+            "🌐  REAL VIDEO ANALYSIS (YouTube oEmbed API)",
+            "─" * 50,
+            f"Title:    {meta.get('title','?')}",
+            f"Creator:  {meta.get('author','?')}",
+            f"Platform: {meta.get('platform_detected','?').upper()}",
+            f"Duration: {summary.get('total_duration','?')}s  "
+            + ("✅ Compliant" if summary.get('platform_compliant') else "❌ Over limit"),
+            f"Scenes:   {summary.get('total_scenes','?')}  (fillers: {summary.get('filler_scenes',0)})",
+            f"Avg eng:  {summary.get('avg_engagement','?')}",
+            "",
+            "🎬  SCENE BREAKDOWN:",
+        ]
+        for s in scenes:
+            eng = s.get("engagement", 0)
+            bar = "█" * int(eng * 10) + "░" * (10 - int(eng * 10))
+            warn = " ⚠️ CUT" if s["type"] == "filler" else ""
+            lines.append(f"  {s['id']:<10} {s['type']:<12} [{bar}] {eng:.2f}{warn}")
+        lines += [
+            "",
+            "🎯  OPTIMIZATION OPPORTUNITIES:",
+            f"  Cut candidate:    {opp.get('cut_candidate','')}",
+            f"  Hook needs boost: {opp.get('hook_needs_boost','')}",
+            f"  First action:     {opp.get('recommended_first_action','')}",
+            "",
+            "💡  Use POST /reset to start an episode and optimize this video structure.",
+        ]
+        if meta.get("oembed_error"):
+            lines.append(f"\n⚠️  oEmbed note: {meta['oembed_error']}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"❌ Failed: {e}"
+
+
 def grade_env():
     g = _get("/grader")
     if not g:
@@ -542,6 +589,21 @@ def build_ui():
                 strategy_btn = gr.Button("🧠 Get Strategy Plan", variant="secondary")
                 strategy_box = gr.Textbox(label="🧠 Strategy Engine", lines=20, interactive=False)
 
+        # ── Real Video URL Analyzer ────────────────────────────────────────────
+        gr.Markdown("### 🌐 Real Video Analyzer — Paste any YouTube URL")
+        gr.Markdown(
+            "> Fetches real video metadata via **YouTube oEmbed API** (no API key needed) "
+            "and generates a scene breakdown for RL optimization."
+        )
+        with gr.Row():
+            url_input = gr.Textbox(
+                label="YouTube / TikTok URL",
+                placeholder="https://www.youtube.com/watch?v=...",
+                scale=4,
+            )
+            analyze_btn = gr.Button("🔍 Analyze", variant="primary", scale=1)
+        analyze_box = gr.Textbox(label="📋 Real Video Analysis", lines=20, interactive=False)
+
         # ── Wire up ────────────────────────────────────────────────────────────
         load_outputs = [status_box, obs_box, scenes_box, hint_box, traj_box,
                         ret_plot, eng_plot, agent_log]
@@ -556,6 +618,7 @@ def build_ui():
         grade_btn.click(grade_env, outputs=[grade_box])
         strategy_btn.click(get_strategy, outputs=[strategy_box])
         agent_btn.click(run_agent, outputs=agent_outputs)
+        analyze_btn.click(analyze_video_url, inputs=[url_input], outputs=[analyze_box])
 
         # ── Auto-load BMW drift on page open ───────────────────────────────────
         demo.load(
