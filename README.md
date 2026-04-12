@@ -8,9 +8,44 @@ app_file: app.py
 pinned: false
 ---
 
-# AI Short-Form Video Optimization Environment
+# AI Short-Form Video Optimization — Decision-Constrained RL Environment
 
-> The only OpenEnv environment that trains AI agents to do what **50 million creators do every day** — edit short-form videos for maximum viral reach — grounded in real engagement data, with irreversible decisions, audience-aware scoring, and multi-platform evaluation.
+> An OpenEnv environment where agents must make **irreversible editorial decisions under uncertainty** — with commitment pressure, risk-aware scoring, and audience-specific optimization across platforms.
+
+---
+
+## The Core RL Problem
+
+Most RL environments are reversible. You can undo a move, retry a step, or reset cleanly. This environment is different.
+
+**Every meaningful action here is irreversible:**
+- `cut_scene` — permanently removes a scene. The retention curve changes forever.
+- `boost_hook` — one-time. You can't un-boost.
+- `finalize_edit` — locks the episode immediately. No more steps.
+
+The agent must learn **when to act, when to wait, and when to commit** — not just *what* to do. This is the core challenge that separates this environment from toy optimization tasks.
+
+**The decision pressure is real:**
+- A `risk_score` (0.0–1.0) tracks proximity to irreversible failure at every step
+- Soft score caps penalize poor early decisions even if later steps are perfect
+- The `finalize_edit` action ends the episode — agents that commit too early or too late are penalized
+- Task_4 (elite) requires solving 5 seeds × 3 platforms in ≤ 8 steps — the heuristic baseline **fails**
+
+---
+
+## Why This Is a Hard RL Problem
+
+| Property | This Environment |
+|----------|-----------------|
+| Reversibility | Partially irreversible — cuts and finalize are permanent |
+| Commitment pressure | `finalize_edit` ends episode; timing matters |
+| Generalization | Task_3: 3 seeds. Task_4: 5 seeds × 3 platforms |
+| Reward structure | Dense (12 components) + efficiency bonus + order penalty |
+| Observation richness | 20 fields including risk_score, retention_curve, steps_remaining |
+| Persona variation | gen_z / millennial / brand — different scoring weights per episode |
+| Heuristic ceiling | Heuristic scores 0.92 on task_3 but **fails task_4 (target 0.95)** |
+
+A random agent scores ~0.54. The heuristic scores ~0.92. The gap between them is where RL lives.
 
 ---
 
@@ -54,21 +89,14 @@ score = env.grade()
 print(score["score"])           # 0.87
 print(score["rubric_score"])    # 0.87 (RL training signal)
 print(score["raw_score"])       # 0.85 (pure observation quality)
+print(score["explanation"])     # human-readable score reasoning
+print(score["grader_metadata"]["risk_score"])  # 0.08 — low risk
 
-# Finalize for persona-weighted bonus (irreversible)
+# Finalize for persona-weighted bonus (irreversible — ends episode)
 result = env.step(VideoAction("finalize_edit"))
 print(result.info["persona"])         # "gen_z"
 print(result.info["persona_score"])   # 0.95
 env.close()
-```
-
-```python
-# Auto-start Docker container
-with VideoOptimizationEnv.from_docker_image("video-env:latest") as env:
-    result = env.reset(platform="reels", seed=42)
-    result = env.step(VideoAction("boost_hook"))
-    print(env.grade()["score"])
-# Container auto-stopped on exit
 ```
 
 ---
