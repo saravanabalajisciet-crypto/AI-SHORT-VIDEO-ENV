@@ -1013,7 +1013,7 @@ def baseline():
             seed_scores.append(_compute_score(state.observation, steps)[0])
 
         avg_score = round(sum(seed_scores) / len(seed_scores), 4)
-        target = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.90, "task_4": 0.95}[task_id]
+        target = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.93, "task_4": 0.95}[task_id]
 
         # task_4: apply step-count penalty for >8 steps (elite constraint)
         if task_id == "task_4" and steps > 8:

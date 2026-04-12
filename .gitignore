@@ -8,3 +8,13 @@ venv/
 dist/
 build/
 .DS_Store
+.vscode/
+response_output/
+*.json.bak
+pre_submit_check.py
+check_task4.py
+run_tests.py
+verify_new_features.py
+verify_v2_features.py
+final_test.py
+.pytest_cache/
