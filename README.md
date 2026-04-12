@@ -8,461 +8,372 @@ app_file: app.py
 pinned: false
 ---
 
-# AI Short-Form Video Optimization — Decision-Constrained RL Environment
+<div align="center">
 
-> An OpenEnv environment where agents must make **irreversible editorial decisions under uncertainty** — with commitment pressure, risk-aware scoring, and audience-specific optimization across platforms.
+# 🎬 AI Short-Form Video Optimization
+## A Decision-Constrained RL Environment for OpenEnv
 
----
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-HF_Space-blue)](https://saravanabalajisara-ai-video-optimizer-env.hf.space/ui)
+[![API Docs](https://img.shields.io/badge/📖_API_Docs-Swagger-green)](https://saravanabalajisara-ai-video-optimizer-env.hf.space/docs)
+[![GitHub](https://img.shields.io/badge/💻_GitHub-Source-black)](https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV)
+[![OpenEnv](https://img.shields.io/badge/🤖_OpenEnv-Compatible-orange)](https://github.com/meta-pytorch/OpenEnv)
 
-## The Core RL Problem
+**The only OpenEnv environment where agents face irreversible decisions, commitment pressure, and real-world editorial consequences.**
 
-Most RL environments are reversible. You can undo a move, retry a step, or reset cleanly. This environment is different.
-
-**Every meaningful action here is irreversible:**
-- `cut_scene` — permanently removes a scene. The retention curve changes forever.
-- `boost_hook` — one-time. You can't un-boost.
-- `finalize_edit` — locks the episode immediately. No more steps.
-
-The agent must learn **when to act, when to wait, and when to commit** — not just *what* to do. This is the core challenge that separates this environment from toy optimization tasks.
-
-**The decision pressure is real:**
-- A `risk_score` (0.0–1.0) tracks proximity to irreversible failure at every step
-- Soft score caps penalize poor early decisions even if later steps are perfect
-- The `finalize_edit` action ends the episode — agents that commit too early or too late are penalized
-- Task_4 (elite) requires solving 5 seeds × 3 platforms in ≤ 8 steps — the heuristic baseline **fails**
+</div>
 
 ---
 
-## Why This Is a Hard RL Problem
+## 🧠 What Makes This Different
+
+Most RL environments are reversible. You can undo a move, retry a step, reset cleanly.
+
+**This environment is not.**
+
+```
+cut_scene     → permanently removes content. Retention curve changes forever.
+boost_hook    → one-time. You cannot un-boost.
+finalize_edit → ends the episode immediately. No more steps.
+```
+
+The agent must learn **when to act, when to wait, and when to commit** — not just what to do. This is the core challenge that separates this environment from toy optimization tasks.
+
+> **The hard RL problem:** Optimal policy under partial irreversibility, step budget constraints, and persona-specific scoring — where early mistakes compound and cannot be undone.
+
+---
+
+## 🎯 The Problem
+
+Every day, 50 million creators on Instagram Reels, YouTube Shorts, and TikTok face the same hard problem: given raw footage, make editorial decisions that maximize reach.
+
+The difference between viral and buried comes down to a handful of irreversible decisions:
+
+| Decision | Why It's Hard |
+|----------|--------------|
+| Hook placement | Wrong order = buried by algorithm. Reordering after boosting wastes the boost permanently. |
+| Scene cuts | Removing the wrong scene permanently damages the retention curve. |
+| Duration compliance | 1 second over the platform limit = 35% less distribution. |
+| Audience targeting | Gen-Z weights hook 2× more than brand. Same video, different optimal strategy. |
+| When to finalize | Commit too early = miss efficiency bonus. Too late = over-editing penalty. |
+
+This environment models that exact problem as a **sequential decision task with irreversible consequences**.
+
+---
+
+## 🔬 Why This Is a Hard RL Problem
 
 | Property | This Environment |
 |----------|-----------------|
-| Reversibility | Partially irreversible — cuts and finalize are permanent |
-| Commitment pressure | `finalize_edit` ends episode; timing matters |
-| Generalization | Task_3: 3 seeds. Task_4: 5 seeds × 3 platforms |
-| Reward structure | Dense (12 components) + efficiency bonus + order penalty |
-| Observation richness | 20 fields including risk_score, retention_curve, steps_remaining |
-| Persona variation | gen_z / millennial / brand — different scoring weights per episode |
-| Heuristic ceiling | Heuristic scores 0.91 on task_3 but **fails task_3 (target 0.93) and task_4 (target 0.95)** |
+| **Reversibility** | Partially irreversible — `cut_scene`, `boost_hook`, `finalize_edit` are permanent |
+| **Commitment pressure** | `finalize_edit` ends episode — timing of commitment is a learnable skill |
+| **Risk signal** | `risk_score` (0.0–1.0) tracks proximity to unrecoverable states at every step |
+| **Soft caps** | Poor early decisions permanently limit maximum achievable score |
+| **Order sensitivity** | Action sequence is graded — wrong order penalized even if all actions are correct |
+| **Generalization** | Task 3: 3 seeds. Task 4: 5 seeds × 3 platforms. No memorization possible. |
+| **Persona variation** | gen_z / millennial / brand — different scoring weights per episode |
+| **Dense reward** | 12-component reward signal with efficiency bonus and order penalty |
 
-A random agent scores ~0.54. The heuristic scores ~0.92. The gap between them is where RL lives.
-
----
-
-## Overview
-
-`ai-video-optimizer-env` is an OpenEnv-native environment for optimizing short-form video content across Instagram Reels, YouTube Shorts, and TikTok.
-
-The environment follows current OpenEnv client/server conventions:
-
-- `VideoOptimizationEnv` is the remote client (sync + context manager)
-- `VideoOptimizationEnv.from_docker_image()` auto-starts a container
-- `VideoOptimizationEnv.from_hf_space()` connects to the live HF Space
-- `scenario_config.json` defines tasks with explicit verifiers
-- `response_output/` stores per-run results for inspection
+**Heuristic ceiling:** A perfect rule-based agent scores 0.91 on task_3 but **fails task_3 (target 0.93) and task_4 (target 0.95)**. RL is required to pass the hard tasks.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
+
+```bash
+pip install requests
+```
 
 ```python
 from client import VideoOptimizationEnv, VideoAction
 
-# Connect to HF Space (no setup needed)
+# Connect to live HF Space — no setup needed
 env = VideoOptimizationEnv.from_hf_space()
+
+# Start episode
 result = env.reset(platform="reels", seed=42)
-print(result.engagement)        # 0.536
-print(result.steps_remaining)   # 15
+print(result.engagement)          # 0.536
+print(result.steps_remaining)     # 15
+print(result.observation["risk_score"])  # 0.42 — medium risk
 print(result.state["metadata"]["audience_persona"])  # gen_z
 
-# Apply actions
-result = env.step(VideoAction("boost_hook"))
-print(result.reward)            # 0.67
+# Take actions
+result = env.step(VideoAction("reorder_scenes", {"order": ["scene_0", "scene_2", "scene_1"]}))
+result = env.step(VideoAction("boost_hook"))      # one-time, irreversible
+result = env.step(VideoAction("enhance_pacing"))
+result = env.step(VideoAction("add_subtitles"))
+result = env.step(VideoAction("add_music"))
 
-# Get hint for next action
-hint = env.hint()
-print(hint["best_action"])      # "enhance_pacing"
-print(hint["reason"])
-
-# Grade the current state
+# Grade
 score = env.grade()
-print(score["score"])           # 0.87
-print(score["rubric_score"])    # 0.87 (RL training signal)
-print(score["raw_score"])       # 0.85 (pure observation quality)
-print(score["explanation"])     # human-readable score reasoning
+print(score["score"])           # 0.91
+print(score["rubric_score"])    # 0.91  ← use this for RL training (GRPO/PPO)
+print(score["raw_score"])       # 0.89  ← pure observation quality
+print(score["explanation"])     # "Strong result — passes hard task threshold..."
 print(score["grader_metadata"]["risk_score"])  # 0.08 — low risk
 
-# Finalize for persona-weighted bonus (irreversible — ends episode)
+# Get strategy plan
+import requests
+plan = requests.get("https://saravanabalajisara-ai-video-optimizer-env.hf.space/strategy").json()
+print(plan["immediate_action"])   # "boost_hook"
+print(plan["strategy_mode"])      # "aggressive"
+print(plan["point_of_no_recovery"])  # False
+
+# Commit (irreversible — ends episode, triggers persona bonus)
 result = env.step(VideoAction("finalize_edit"))
-print(result.info["persona"])         # "gen_z"
-print(result.info["persona_score"])   # 0.95
-env.close()
+print(result.info["persona_score"])  # 0.94
 ```
 
 ---
 
-## Why This Matters
-
-The creator economy is a **$250 billion industry**. Every day, 50 million creators on Instagram Reels, YouTube Shorts, and TikTok face the same hard problem: given raw footage, make editorial decisions that maximize reach.
-
-The difference between a video that goes viral and one that gets buried comes down to a handful of decisions made in the first edit:
-
-- **Hook placement** — the algorithm scores the first 3 seconds. Wrong order = buried.
-- **Scene cuts** — removing the wrong scene is irreversible. It permanently changes the retention curve.
-- **Duration compliance** — 1 second over the platform limit = 35% less distribution.
-- **Audience targeting** — a Gen-Z audience weights hook strength 2x more than a brand audience.
-
-This environment models that exact problem as a **sequential decision task with real-world consequences**. Agents must learn editorial judgment through dense reward signals, real video data, and multi-scenario evaluation.
-
-**Real-world grounding:** Scene data is derived from 50 video profiles across 30 niches. The first 10 videos are directly grounded in published research:
-- [opus.pro](https://www.opus.pro/blog/tiktok-length-format-retention-data): 500 TikTok videos — 70% retention = 4.3x more impressions
-- [socialinsider.io](https://www.socialinsider.io/social-media-benchmarks/social-media-video-statistics): 2025 Social Media Video Performance Statistics
-- [vidico.com](https://vidico.com/news/instagram-reels-statistics): Reels organic reach dropped 50% in 2023 — hook-first is mandatory
-- [dmnews.com](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three): 75% of viewers click away before midpoint
-
----
-
-## What Works Today
-
-- Full OpenEnv spec: `reset()` / `step()` / `state()` / `grader()`
-- 11 typed actions including irreversible `cut_scene` and `finalize_edit`
-- 4 tasks (easy → medium → hard → elite) with multi-seed evaluation for task_3/task_4
-- Dense reward signal with 12 components + efficiency bonus + order penalty
-- Audience personas (gen_z / millennial / brand) assigned per episode
-- Real video dataset: 50 profiles, 30 niches, 7 research sources
-- `steps_remaining` in observation — agent knows its budget
-- Order-sensitive grader — correct action sequence rewarded
-- `raw_score` + `rubric_score` separation for RL training
-- `risk_score` in observation — advisory signal for decision pressure
-- `/hint` endpoint — best next action with reasoning
-- `/strategy` endpoint — full action plan with risk-aware sequencing
-- `/leaderboard` — top scores across all graded episodes
-- `/trajectory` — full action log with decision_quality per step
-- `/efficiency` — step efficiency rating (elite/optimal/good)
-- `/dataset` — real video dataset with research citations
-- `/persona` — current audience persona and scoring weights
-- Simulate mode (`simulate=true` in reset) — safe training without leaderboard writes
-- Grader explanation field — human-readable score reasoning
-- WebSocket endpoint for persistent sessions
-- `VideoOptimizationEnv` client with `from_docker_image()` and context manager
-- `scenario_config.json` with explicit verifiers per task
-- `response_output/` — per-run JSON results saved automatically
-- `test_environment.py` — full pytest suite (60+ tests)
-
----
-
-## Architecture
+## 🏗️ Architecture
 
 ```
 ai-video-optimizer-env/
-├── app.py                  # FastAPI server — 14 endpoints
-├── environment.py          # Core RL environment logic
-├── models.py               # Pydantic models (typed)
-├── client.py               # VideoOptimizationEnv client library
-├── inference.py            # LLM-powered inference script
-├── scenario_config.json    # Task verifiers (explicit pass/fail criteria)
-├── video_dataset.json      # 50 real-world video profiles, 30 niches
-├── server/app.py           # OpenEnv entry point
-├── requirements.txt        # Pinned dependencies
-├── openenv.yaml            # OpenEnv spec v6
-└── Dockerfile              # python:3.11-slim-bullseye, port 7860
+├── app.py              # FastAPI — 15 endpoints + Gradio UI mount
+├── environment.py      # Core RL logic: reset, step, reward, risk
+├── models.py           # Typed Pydantic models throughout
+├── strategy_engine.py  # Risk-aware action planner + score explainer
+├── gradio_ui.py        # Live interactive demo at /ui
+├── client.py           # VideoOptimizationEnv client (context manager)
+├── inference.py        # LLM agent (OpenAI proxy compatible)
+├── test_environment.py # 52 pytest tests
+├── scenario_config.json # Task verifiers with explicit pass/fail criteria
+├── video_dataset.json  # 50 real-world video profiles, 30 niches
+├── openenv.yaml        # OpenEnv spec v6
+├── server/app.py       # OpenEnv entry point
+└── Dockerfile          # python:3.11-slim, port 7860
 ```
 
-**Server modules:**
-- `environment.py` — scene generation, action handlers, reward computation, order scoring
-- `app.py` — FastAPI endpoints, per-session isolation, leaderboard, trajectory logging
-- `models.py` — Action, Observation (with steps_remaining), State, GraderResponse (with rubric_score)
+---
+
+## 📋 Tasks
+
+| Task | Level | Target | Seeds | What Makes It Hard |
+|------|-------|--------|-------|-------------------|
+| task_1 | Easy | 0.65 | 1 | Remove filler, raise engagement above 0.60 |
+| task_2 | Medium | 0.78 | 1 | Compliance + retention + production quality |
+| task_3 | Hard | **0.93** | 3 | Generalize across seeds, correct action order required |
+| task_4 | Elite | **0.95** | 5 × 3 platforms | No memorization possible, ≤ 8 steps |
+
+**Heuristic baseline results from `/baseline`:**
+
+| Agent | task_1 | task_2 | task_3 | task_4 |
+|-------|--------|--------|--------|--------|
+| Random (initial state) | 0.54 | 0.54 | 0.54 | 0.54 |
+| Heuristic (optimal sequence) | 0.87 | 0.87 | 0.91 | 0.92 |
+| **Target** | **0.65** | **0.78** | **0.93** | **0.95** |
+| **Heuristic passes?** | ✅ | ✅ | ❌ | ❌ |
+
+Tasks 3 and 4 require a learning agent. The heuristic cannot pass them.
 
 ---
 
-## Tasks
+## ⚡ Reward System
 
-| Task | Level | Target | Evaluation |
-|------|-------|--------|------------|
-| task_1 | Easy | 0.65 | Single seed (42) — remove filler, raise engagement > 0.60 |
-| task_2 | Medium | 0.78 | Single seed (42) — compliance + retention + production quality |
-| task_3 | Hard | 0.93 | **Average across seeds 42, 7, 13** — must generalize, correct order required |
-| task_4 | Elite | 0.95 | **5 seeds × 3 platforms** — no memorization possible, ≤ 8 steps |
+### Per-Step Dense Reward (12 components)
 
-task_3 is evaluated as the average score across 3 seeds. task_4 adds multi-platform generalization across reels, shorts, and tiktok — a simple heuristic that memorizes seed=42 will fail.
+```python
+reward = (engagement_delta  * 2.5)   # primary signal
+       + (retention_delta   * 2.0)   # viewer drop-off
+       + (hook_delta        * 1.5)   # first-impression strength
+       + (pacing_delta      * 1.0)   # structural smoothness
+       + (transition_quality * 0.05) # continuous quality signal
+       + (cut_smoothness    * 0.05)
+       + (audio_sync        * 0.05)
+       + compliance_bonus           # +0.20 on transition, +0.05 persistent
+       + subtitles_bonus            # +0.10 persistent
+       + hook_first_bonus           # +0.15 on transition
+       + milestone_bonuses          # +0.20 at eng>0.80, +0.15 at hook>0.70
+       + persona_finalize_bonus     # up to +0.50 on finalize_edit
+```
 
----
+### Grader Formula (deterministic, weights sum to 1.0)
 
-## Rewards
-
-Rewards follow the OpenEnv rubric system. The environment uses a composite reward combining:
-
-**Per-step dense reward (12 components):**
-
-| Signal | Weight |
-|--------|--------|
-| Engagement delta | × 2.5 |
-| Retention delta | × 2.0 |
-| Hook strength delta | × 1.5 |
-| Pacing delta | × 1.0 |
-| Platform compliance | +0.20 on transition |
-| Subtitles | +0.10 persistent |
-| Hook-first | +0.15 on transition |
-| Engagement milestone (>0.80) | +0.20 |
-| Hook milestone (>0.70) | +0.15 |
-| Persona-weighted finalize | up to +0.50 |
-
-**Penalties:** invalid actions (-0.30), removing high-engagement scenes (-0.20), repeated idempotent actions (-0.20), over-editing (-0.10).
-
-**Grader formula (deterministic, weights sum to 1.0):**
 ```
 raw_score    = engagement*0.35 + retention*0.15 + compliance*0.20
              + subtitles*0.10 + hook*0.10 + pacing*0.05
              + transition*0.03 + cut*0.01 + audio*0.01
 
 rubric_score = raw_score + efficiency_bonus + order_penalty
-             (RL training signal — use this for GRPO/PPO)
 ```
 
-**Efficiency tiers:** Elite (>= 0.92 in <= 7 steps) → Optimal → Good → Acceptable.
+**Use `rubric_score` for RL training** — it's efficiency-adjusted and order-sensitive.
 
-For RL training, use `rubric_score` from `/grader` — it provides efficiency-adjusted and order-sensitive credit assignment.
+### Soft Score Caps (Decision Pressure)
 
----
+Poor early decisions permanently limit maximum achievable score:
 
-## Action Space (11 actions)
+| Condition | Effect on rubric_score |
+|-----------|----------------------|
+| `hook_strength < 0.4` after step 3 | Capped at 0.60 |
+| `avg_retention < 0.3` | × 0.7 multiplier |
+| `platform_compliant == False` | − 0.10 |
 
-| Action | Parameters | Effect | Reversible |
-|--------|-----------|--------|------------|
-| `cut_scene` | `{"scene_id": str}` | Remove scene. Penalizes high-engagement cuts. | No |
-| `reorder_scenes` | `{"order": [str]}` | Reorder scenes. Hook-first gives +0.02 lift. | Yes |
-| `add_subtitles` | `{}` | +0.06 engagement lift. | One-time |
-| `add_music` | `{}` | +0.12 on hook/content scenes. | One-time |
-| `boost_hook` | `{}` | hook_strength +0.30, engagement +0.20. | One-time |
-| `trim_duration` | `{"target_seconds": float}` | Trim to platform limit. | No |
-| `enhance_pacing` | `{}` | Smooth engagement transitions. | One-time |
-| `improve_transition` | `{}` | transition_quality +0.15. | One-time |
-| `smooth_cut` | `{}` | cut_smoothness +0.15. | One-time |
-| `sync_audio` | `{}` | audio_sync_score +0.15. | One-time |
-| `finalize_edit` | `{}` | **IRREVERSIBLE.** Locks episode, persona-weighted bonus. | No |
+`raw_score` is **never modified** — caps apply only to the RL training signal.
 
 ---
 
-## Observation Space (17 fields)
+## 🎭 Audience Personas
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `scenes` | List[Scene] | Full scene list with per-scene quality metrics |
-| `current_engagement_score` | float | Mean engagement (0.0–1.0) |
-| `avg_retention` | float | Mean viewer retention (0.0–1.0) |
-| `retention_curve` | List[float] | Per-scene viewer drop-off |
-| `watch_time` | float | Estimated watch time in seconds |
-| `hook_strength` | float | Opening hook strength (0.0–1.0) |
-| `pacing_score` | float | Smoothness of engagement transitions |
-| `avg_transition_quality` | float | Mean transition quality |
-| `avg_cut_smoothness` | float | Mean cut smoothness |
-| `avg_audio_sync_score` | float | Mean audio sync quality |
-| `total_duration` | float | Total video length in seconds |
-| `platform_compliant` | bool | True if within platform duration limit |
-| `hook_first` | bool | True if first scene is hook/highlight |
-| `subtitles_present` | bool | Whether subtitles are added |
-| `music_added` | bool | Whether music is added |
-| `platform` | str | reels / shorts / tiktok |
-| `steps_remaining` | int | Steps left in episode (budget awareness) |
+Each episode is assigned a persona based on seed. Persona weights influence `finalize_edit` bonus:
+
+| Persona | Hook Weight | Retention Weight | Compliance Weight | Strategy |
+|---------|-------------|-----------------|-------------------|----------|
+| `gen_z` | **0.45** | 0.20 | 0.10 | Prioritize hook first |
+| `millennial` | 0.25 | **0.35** | 0.15 | Prioritize retention |
+| `brand` | 0.20 | 0.20 | **0.40** | Prioritize compliance |
 
 ---
 
-## Audience Personas
+## 🔍 Risk-Aware Evaluation
 
-Each episode is assigned an audience persona based on seed:
+Every observation includes `risk_score` — an advisory signal tracking proximity to irreversible failure:
 
-| Persona | Description | Hook Weight | Retention Weight | Compliance Weight |
-|---------|-------------|-------------|-----------------|-------------------|
-| `gen_z` | 18-24, mobile-first, high scroll velocity | 0.45 | 0.20 | 0.10 |
-| `millennial` | 25-34, value-driven, watches to completion | 0.25 | 0.35 | 0.15 |
-| `brand` | Brand safety, reach-focused | 0.20 | 0.20 | 0.40 |
+```python
+obs["risk_score"]  # 0.0 = safe, 1.0 = point of no recovery
+```
 
-Call `finalize_edit` to trigger persona-weighted final scoring. Call `/persona` to see current episode's weights.
+| Risk Level | Range | Agent Posture |
+|------------|-------|---------------|
+| Low | 0.0 – 0.4 | Safe exploration — full sequence recommended |
+| Medium | 0.4 – 0.7 | Careful optimization — avoid risky cuts |
+| High | > 0.7 | Limited recovery — only safe multipliers |
 
----
+`risk_score` does NOT affect reward directly. It is an advisory signal for decision-making.
 
-## Baseline Performance
+### Irreversible Decision Point
 
-| Agent | task_1 | task_2 | task_3 (avg 3 seeds) | Notes |
-|-------|--------|--------|----------------------|-------|
-| Random agent | 0.31 | 0.28 | 0.24 | Random action each step |
-| Worst case | 0.18 | 0.15 | 0.12 | No cuts, no hook boost |
-| Greedy (boost_hook only) | 0.52 | 0.48 | 0.41 | Single action repeated |
-| Partial (3 actions) | 0.71 | 0.68 | 0.62 | Hook + subtitles only |
-| Heuristic baseline | 0.87 | 0.87 | 0.92 | Full optimal sequence |
-| GPT-4o-mini (via proxy) | ~0.82 | ~0.79 | ~0.74 | LLM with hint endpoint |
+When `finalize_edit` is called, the episode metadata records:
+- `irreversible_decision_point: true`
+- `finalized_at_step` — which step the agent committed
+- `finalized_risk_score` — risk level at moment of commitment
 
-4x difficulty range — random agents score ~0.28, optimal heuristic scores ~0.92.
+This lets evaluators distinguish agents that commit confidently at low risk vs. agents that panic-finalize under pressure.
 
 ---
 
-## API Endpoints (14 endpoints)
+## 🛠️ API Reference (15 endpoints)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/reset` | Start new episode. Accepts platform, seed, simulate flag. |
-| POST | `/step` | Apply one action. Returns state, reward, done, info. |
-| GET | `/state` | Read current state. |
+| POST | `/reset` | Start episode. Accepts `platform`, `seed`, `simulate`, `session_id`. |
+| POST | `/step` | Apply action. Returns `state`, `reward`, `done`, `info`. |
+| GET | `/state` | Read current state without advancing. |
 | GET | `/tasks` | All 4 task definitions (easy → elite). |
-| GET | `/grader` | Score with raw_score, rubric_score, explanation, grader_metadata. |
-| GET | `/baseline` | Deterministic + random agent baseline across all tasks. |
-| GET | `/feedback` | AI coaching tips. |
+| GET | `/grader` | Score with `raw_score`, `rubric_score`, `explanation`, `grader_metadata`. |
+| GET | `/baseline` | Heuristic + random agent scores across all tasks. |
 | GET | `/hint` | Best next action with reasoning. |
-| GET | `/strategy` | Full action plan with risk-aware sequencing and persona focus. |
-| GET | `/scenarios` | 5 diverse scenario seeds. |
-| GET | `/trajectory` | Full episode action log + decision_quality per step. |
-| GET | `/efficiency` | Step efficiency rating. |
-| GET | `/dataset` | Real video dataset metadata + research citations. |
+| GET | `/strategy` | Full risk-aware action plan with persona focus. |
+| GET | `/feedback` | AI coaching tips for current state. |
+| GET | `/trajectory` | Full action log with `decision_quality` per step. |
+| GET | `/efficiency` | Step efficiency rating (elite/optimal/good). |
+| GET | `/scenarios` | 5 diverse scenario seeds across platforms. |
 | GET | `/persona` | Current audience persona + scoring weights. |
+| GET | `/dataset` | Real video dataset metadata + research citations. |
 | GET | `/leaderboard` | Top scores across all graded episodes. |
+| GET | `/ui` | **Live Gradio demo** — interactive environment explorer. |
 
 ---
 
-## Setup
+## 🎮 Live Interactive Demo
 
-**Local mode (no Docker needed):**
+Try the environment live at:
+
+**[https://saravanabalajisara-ai-video-optimizer-env.hf.space/ui](https://saravanabalajisara-ai-video-optimizer-env.hf.space/ui)**
+
+- Reset episode, choose platform and seed
+- Take actions and watch engagement/risk/retention change in real time
+- Grade the current state with full score breakdown and explanation
+- Get the strategy engine's risk-aware action plan
+
+---
+
+## 🔧 Setup
+
+**Local (no Docker):**
 ```bash
 pip install -r requirements.txt
 uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
-**Docker mode:**
+**Docker:**
 ```bash
 docker build -t video-env:latest .
 docker run -p 7860:7860 video-env:latest
 ```
 
-**Mock mode (point at any server):**
+**Run inference against HF Space:**
 ```bash
-# HF Space (no local setup)
-ENV_URL=https://saravanabalajisara-ai-video-optimizer-env.hf.space python inference.py
-
-# Local Docker
-ENV_URL=http://localhost:7860 python inference.py
-
-# With scenario config
-python inference.py --scenario scenario_config.json
+OPENENV_BASE_URL=https://saravanabalajisara-ai-video-optimizer-env.hf.space \
+API_BASE_URL=https://api.openai.com/v1 \
+API_KEY=your-key \
+python inference.py
 ```
 
 ---
 
-## Environment Variables
+## 🧪 Testing
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ENV_URL` | `http://localhost:7860` | RL environment server URL |
-| `API_BASE_URL` | `https://api.openai.com/v1` | LLM proxy base URL (injected by validator) |
-| `API_KEY` | — | LLM API key |
-| `HF_TOKEN` | — | HuggingFace token (fallback for API_KEY) |
-| `OPENAI_API_KEY` | — | OpenAI key (fallback) |
-| `MODEL_NAME` | `gpt-4o-mini` | LLM model identifier |
+```bash
+pip install pytest
+# Start server first
+pytest test_environment.py -v
+```
 
----
-
-## Live URLs
-
-- API: `https://saravanabalajisara-ai-video-optimizer-env.hf.space`
-- Docs: `https://saravanabalajisara-ai-video-optimizer-env.hf.space/docs`
-- Space: `https://huggingface.co/spaces/saravanabalajisara/ai-video-optimizer-env`
-- GitHub: `https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV`
+52 tests covering: reset, step, all actions, observation fields, grader, tasks, hint, strategy, trajectory, session isolation, simulate mode, environment logic, strategy engine unit tests.
 
 ---
 
-## License
+## 📊 Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPENENV_BASE_URL` | RL environment server URL (injected by validator) |
+| `API_BASE_URL` | LLM proxy base URL (injected by validator) |
+| `API_KEY` | LLM API key (injected by validator) |
+| `MODEL_NAME` | LLM model identifier (default: `gpt-4o-mini`) |
+| `HF_TOKEN` | HuggingFace token (fallback for API_KEY) |
+
+---
+
+## 📚 Real-World Grounding
+
+Scene data is derived from 50 video profiles across 30 niches. The first 10 videos are grounded in published research:
+
+- [opus.pro](https://www.opus.pro/blog/tiktok-length-format-retention-data) — 500 TikTok videos: 70% retention = 4.3× more impressions
+- [socialinsider.io](https://www.socialinsider.io/social-media-benchmarks/social-media-video-statistics) — 2025 Social Media Video Performance Statistics
+- [vidico.com](https://vidico.com/news/instagram-reels-statistics) — Reels organic reach dropped 50% in 2023; hook-first is mandatory
+- [dmnews.com](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three) — 75% of viewers click away before midpoint
+
+---
+
+## 🔗 Links
+
+| | |
+|--|--|
+| 🚀 Live API | https://saravanabalajisara-ai-video-optimizer-env.hf.space |
+| 📖 Swagger Docs | https://saravanabalajisara-ai-video-optimizer-env.hf.space/docs |
+| 🎮 Interactive Demo | https://saravanabalajisara-ai-video-optimizer-env.hf.space/ui |
+| 🤗 HF Space | https://huggingface.co/spaces/saravanabalajisara/ai-video-optimizer-env |
+| 💻 GitHub | https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV |
+
+---
+
+## 📄 License
 
 MIT
 
 ---
 
-## Citation
+## 📖 Citation
 
 ```bibtex
-@misc{ai-video-optimizer-env,
+@misc{ai-video-optimizer-env-2026,
   author  = {SaravanaBalaji},
-  title   = {AI Short-Form Video Optimization Environment for OpenEnv},
+  title   = {AI Short-Form Video Optimization: A Decision-Constrained RL Environment},
   year    = {2026},
   url     = {https://github.com/saravanabalajisciet-crypto/AI-SHORT-VIDEO-ENV},
-  note    = {OpenEnv-compatible RL environment for training agents to optimize
-             short-form video content across Instagram Reels, YouTube Shorts,
-             and TikTok. Grounded in public creator analytics research.}
+  note    = {OpenEnv-compatible environment for training agents under partial
+             irreversibility, commitment pressure, and persona-specific scoring.}
 }
 ```
-
----
-
-## References
-
-- [opus.pro: Ideal TikTok Length & Format for Retention](https://www.opus.pro/blog/tiktok-length-format-retention-data) — 500 video analysis, retention data
-- [socialinsider.io: 2025 Social Media Video Performance Statistics](https://www.socialinsider.io/social-media-benchmarks/social-media-video-statistics)
-- [vidico.com: Instagram Reels Statistics](https://vidico.com/news/instagram-reels-statistics)
-- [dmnews.com: Video retention research](https://dmnews.com/video-marketing-works-until-you-realize-no-ones-watching-past-second-three)
-- [OpenEnv Framework](https://github.com/meta-pytorch/OpenEnv)
-- [OpenEnv Rubric RFC 004](https://github.com/meta-pytorch/OpenEnv)
-
----
-
-## Decision Pressure & Irreversible Optimization
-
-### Risk-Aware Evaluation
-
-Every observation now includes a `risk_score` (0.0–1.0) that signals how close the current state is to an irreversible failure — a state from which no sequence of remaining actions can recover a high score.
-
-```python
-obs = env.reset().observation
-print(obs["risk_score"])   # e.g. 0.72 — high danger
-```
-
-Risk is computed from three weak-signal indicators:
-
-| Signal | Danger threshold | Weight |
-|--------|-----------------|--------|
-| `hook_strength` | < 0.6 | 45% |
-| `avg_retention` | < 0.5 | 35% |
-| `pacing_score` | < 0.4 | 20% |
-
-A `risk_score` above 0.7 indicates entry into a high-risk region where recovery to optimal performance becomes unlikely under remaining step constraints.
-
-> `risk_score` does NOT affect reward directly — it is an advisory signal for decision-making and evaluation.
-
-| Risk level | Range | Agent posture |
-|------------|-------|---------------|
-| Low | 0.0 – 0.4 | Safe exploration |
-| Medium | 0.4 – 0.7 | Careful optimization |
-| High | > 0.7 | Limited recovery region |
-
-### Soft Score Caps
-
-The grader applies post-processing caps to `rubric_score` (the RL training signal) when the agent has made structurally poor decisions. `raw_score` is **never modified**.
-
-Soft caps simulate real-world algorithm penalties where poor early decisions limit maximum achievable reach, even if later improvements are made. This introduces **commitment pressure** — agents must decide not only how to optimize, but when to stop optimizing.
-
-| Condition | Effect |
-|-----------|--------|
-| `hook_strength < 0.4` after step 3 | `rubric_score` capped at 0.60 |
-| `avg_retention < 0.3` | `rubric_score` × 0.7 multiplier |
-| `platform_compliant == False` | `rubric_score` − 0.10 |
-
-The `/grader` response now includes a `grader_metadata` block:
-
-```json
-{
-  "grader_metadata": {
-    "risk_score": 0.72,
-    "score_cap_applied": true,
-    "cap_reason": "low_hook_strength",
-    "irreversible_decision_point": false,
-    "finalized_at_step": null,
-    "finalized_risk_score": null
-  }
-}
-```
-
-### Irreversible Decision Point
-
-`finalize_edit` is the only truly irreversible action. When called, the episode metadata records:
-
-- `irreversible_decision_point: true`
-- `finalized_at_step` — which step the agent committed
-- `finalized_risk_score` — the risk level at the moment of commitment
-
-This allows evaluators to distinguish agents that commit confidently at low risk vs. agents that panic-finalize under pressure.
