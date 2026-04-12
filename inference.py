@@ -215,7 +215,7 @@ def run_episode(task_id: str, seed: int = 42) -> dict:
         print(f"{'-'*W}", flush=True)
 
         # -- [START] --------------------------------------------------------
-        print(f"[START] task={task_id}", flush=True)
+        print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
         # Reset environment — retry up to 3 times
         state = {}

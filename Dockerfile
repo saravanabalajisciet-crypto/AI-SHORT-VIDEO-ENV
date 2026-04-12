@@ -19,6 +19,8 @@ COPY inference.py .
 COPY strategy_engine.py .
 COPY gradio_ui.py .
 COPY test_environment.py .
+COPY evaluate.py .
+COPY scenario_config.json .
 COPY openenv.yaml .
 COPY video_dataset.json .
 COPY server/ ./server/

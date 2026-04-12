@@ -267,7 +267,8 @@ class VideoOptimizationEnv:
         self._cut_smoothed = False
         self._audio_synced = False
         self._finalized = False
-        self._persona = "gen_z"  # audience persona
+        self._persona = "gen_z"
+        self._action_history: List[str] = []  # always initialized
 
     def reset(self):
         scenes = _initial_scenes(self.seed)
@@ -279,7 +280,7 @@ class VideoOptimizationEnv:
         self._audio_synced = False
         self._finalized = False
         self._persona = _get_persona(self.seed)
-        self._action_history: List[str] = []  # FIX A: track action order
+        self._action_history: List[str] = []  # reset on each episode
 
         real_video_id = None
         real_niche = None

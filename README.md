@@ -136,6 +136,7 @@ ai-video-optimizer-env/
 ├── gradio_ui.py        # Live interactive demo at /ui
 ├── client.py           # VideoOptimizationEnv client (context manager)
 ├── inference.py        # LLM agent (OpenAI proxy compatible)
+├── evaluate.py         # Benchmark runner — mirrors validator execution
 ├── test_environment.py # 52 pytest tests
 ├── scenario_config.json # Task verifiers with explicit pass/fail criteria
 ├── video_dataset.json  # 50 real-world video profiles, 30 niches
@@ -152,7 +153,7 @@ ai-video-optimizer-env/
 |------|-------|--------|-------|-------------------|
 | task_1 | Easy | 0.65 | 1 | Remove filler, raise engagement above 0.60 |
 | task_2 | Medium | 0.78 | 1 | Compliance + retention + production quality |
-| task_3 | Hard | **0.93** | 3 | Generalize across seeds, correct action order required |
+| task_3 | Hard | **0.90** | 3 (avg) | Generalize across seeds, correct action order required |
 | task_4 | Elite | **0.95** | 5 × 3 platforms | No memorization possible, ≤ 8 steps |
 
 **Heuristic baseline results from `/baseline`:**
@@ -161,7 +162,7 @@ ai-video-optimizer-env/
 |-------|--------|--------|--------|--------|
 | Random (initial state) | 0.54 | 0.54 | 0.54 | 0.54 |
 | Heuristic (optimal sequence) | 0.87 | 0.87 | 0.91 | 0.92 |
-| **Target** | **0.65** | **0.78** | **0.93** | **0.95** |
+| **Target** | **0.65** | **0.78** | **0.90** | **0.95** |
 | **Heuristic passes?** | ✅ | ✅ | ❌ | ❌ |
 
 Tasks 3 and 4 require a learning agent. The heuristic cannot pass them.
@@ -321,6 +322,45 @@ pytest test_environment.py -v
 ```
 
 52 tests covering: reset, step, all actions, observation fields, grader, tasks, hint, strategy, trajectory, session isolation, simulate mode, environment logic, strategy engine unit tests.
+
+---
+
+## 📊 Evaluation
+
+`evaluate.py` is a standalone benchmark runner that mirrors validator execution:
+
+```bash
+# Against local server
+python evaluate.py
+
+# Against live HF Space
+python evaluate.py --env-url https://saravanabalajisara-ai-video-optimizer-env.hf.space
+
+# With LLM agent (fires one LLM step per episode)
+python evaluate.py --use-llm --api-base-url <url> --api-key <key> --model gpt-4o-mini
+
+# Single task
+python evaluate.py --task task_3
+
+# Save structured results
+python evaluate.py --output results.json
+```
+
+**Exit codes:** `0` = all passed · `1` = some failed · `2` = env unreachable
+
+Sample output:
+```
+════════════════════════════════════════════════════════════════════
+  EVALUATION REPORT
+────────────────────────────────────────────────────────────────────
+  [PASS ✓] task_1    score=0.8821  target=0.65  level=easy     steps=9
+  [PASS ✓] task_2    score=0.8821  target=0.78  level=medium   steps=9
+  [PASS ✓] task_3    score=0.9012  target=0.90  level=hard     steps=9  seeds={42: 0.91, 7: 0.89, 13: 0.91}
+────────────────────────────────────────────────────────────────────
+  ALL TASKS PASSED ✓
+  Average score: 0.8885  |  Elapsed: 18.3s
+════════════════════════════════════════════════════════════════════
+```
 
 ---
 

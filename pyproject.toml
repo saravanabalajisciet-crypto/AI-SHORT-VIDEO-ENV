@@ -4,7 +4,7 @@ build-backend = "setuptools.backends.legacy:build"
 
 [project]
 name = "ai-video-optimizer-env"
-version = "4.0.0"
+version = "6.0.0"
 description = "OpenEnv-compatible RL environment for short-form video optimization"
 readme = "README.md"
 license = { text = "MIT" }
