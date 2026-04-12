@@ -269,9 +269,9 @@ def get_tasks():
                 "current_engagement_score >= 0.82 AND avg_retention >= 0.92 AND "
                 "hook_strength >= 0.75 AND avg_transition_quality >= 0.72 AND "
                 "platform_compliant == True AND subtitles_present == True AND "
-                "steps <= 10. Grader score >= 0.90 averaged across seeds 42, 7, 13."
+                "steps <= 10. Grader score >= 0.93 averaged across seeds 42, 7, 13."
             ),
-            target_score=0.90,
+            target_score=0.93,
         ),
         TaskDefinition(
             id="task_4",
@@ -880,7 +880,7 @@ def baseline():
             seed_scores.append(_compute_score(state.observation, steps)[0])
 
         avg_score = round(sum(seed_scores) / len(seed_scores), 4)
-        target = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.90, "task_4": 0.95}[task_id]
+        target = {"task_1": 0.65, "task_2": 0.78, "task_3": 0.93, "task_4": 0.95}[task_id]
 
         # task_4: apply step-count penalty for >8 steps (elite constraint)
         if task_id == "task_4" and steps > 8:

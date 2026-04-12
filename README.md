@@ -43,7 +43,7 @@ The agent must learn **when to act, when to wait, and when to commit** — not j
 | Reward structure | Dense (12 components) + efficiency bonus + order penalty |
 | Observation richness | 20 fields including risk_score, retention_curve, steps_remaining |
 | Persona variation | gen_z / millennial / brand — different scoring weights per episode |
-| Heuristic ceiling | Heuristic scores 0.92 on task_3 but **fails task_4 (target 0.95)** |
+| Heuristic ceiling | Heuristic scores 0.91 on task_3 but **fails task_3 (target 0.93) and task_4 (target 0.95)** |
 
 A random agent scores ~0.54. The heuristic scores ~0.92. The gap between them is where RL lives.
 
@@ -181,7 +181,7 @@ ai-video-optimizer-env/
 |------|-------|--------|------------|
 | task_1 | Easy | 0.65 | Single seed (42) — remove filler, raise engagement > 0.60 |
 | task_2 | Medium | 0.78 | Single seed (42) — compliance + retention + production quality |
-| task_3 | Hard | 0.90 | **Average across seeds 42, 7, 13** — must generalize, correct order required |
+| task_3 | Hard | 0.93 | **Average across seeds 42, 7, 13** — must generalize, correct order required |
 | task_4 | Elite | 0.95 | **5 seeds × 3 platforms** — no memorization possible, ≤ 8 steps |
 
 task_3 is evaluated as the average score across 3 seeds. task_4 adds multi-platform generalization across reels, shorts, and tiktok — a simple heuristic that memorizes seed=42 will fail.
