@@ -62,57 +62,71 @@ def _get(path):
 
 
 def _retention_chart(obs):
-    """Build retention curve chart data."""
-    curve = obs.get("retention_curve", [])
-    scenes = obs.get("scenes", [])
-    if not curve:
+    """Build retention curve chart using matplotlib."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        curve = obs.get("retention_curve", [])
+        scenes = obs.get("scenes", [])
+        if not curve:
+            return None
+        labels = [s.get("id", f"s{i}") for i, s in enumerate(scenes)]
+        while len(labels) < len(curve):
+            labels.append(f"s{len(labels)}")
+        labels = labels[:len(curve)]
+
+        fig, ax = plt.subplots(figsize=(5, 2.5))
+        ax.plot(labels, curve, color="#7c3aed", linewidth=2.5, marker="o", markersize=6)
+        ax.fill_between(range(len(curve)), curve, alpha=0.15, color="#7c3aed")
+        ax.set_ylim(0, 1.05)
+        ax.set_title("📉 Viewer Retention Curve", fontsize=10, pad=6)
+        ax.set_xlabel("Scene", fontsize=8)
+        ax.set_ylabel("Retention", fontsize=8)
+        ax.tick_params(labelsize=7)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=7)
+        ax.grid(axis="y", alpha=0.3)
+        ax.axhline(y=0.5, color="#ef4444", linestyle="--", linewidth=1, alpha=0.5)
+        fig.tight_layout()
+        return fig
+    except Exception:
         return None
-    labels = [s.get("id", f"s{i}") for i, s in enumerate(scenes)]
-    # Pad labels if needed
-    while len(labels) < len(curve):
-        labels.append(f"s{len(labels)}")
-    return {
-        "data": [{"x": labels[:len(curve)], "y": curve, "type": "scatter",
-                  "mode": "lines+markers", "name": "Retention",
-                  "line": {"color": "#7c3aed", "width": 3},
-                  "marker": {"size": 8}}],
-        "layout": {
-            "title": "📉 Viewer Retention Curve",
-            "xaxis": {"title": "Scene"},
-            "yaxis": {"title": "Retention", "range": [0, 1]},
-            "height": 220,
-            "margin": {"l": 40, "r": 20, "t": 40, "b": 40},
-            "plot_bgcolor": "#f8f7ff",
-            "paper_bgcolor": "#f8f7ff",
-        }
-    }
 
 
 def _engagement_chart(obs):
-    """Build per-scene engagement bar chart."""
-    scenes = obs.get("scenes", [])
-    if not scenes:
+    """Build per-scene engagement bar chart using matplotlib."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        scenes = obs.get("scenes", [])
+        if not scenes:
+            return None
+        labels = [s.get("id", f"s{i}") for i, s in enumerate(scenes)]
+        values = [s.get("engagement_score", 0) for s in scenes]
+        colors = ["#7c3aed" if v >= 0.5 else "#f59e0b" if v >= 0.3 else "#ef4444" for v in values]
+
+        fig, ax = plt.subplots(figsize=(5, 2.5))
+        bars = ax.bar(labels, values, color=colors, edgecolor="white", linewidth=0.5)
+        ax.axhline(y=0.3, color="#ef4444", linestyle="--", linewidth=1, alpha=0.7, label="Cut threshold")
+        ax.set_ylim(0, 1.05)
+        ax.set_title("📊 Scene Engagement", fontsize=10, pad=6)
+        ax.set_xlabel("Scene", fontsize=8)
+        ax.set_ylabel("Score", fontsize=8)
+        ax.tick_params(labelsize=7)
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=7)
+        ax.grid(axis="y", alpha=0.3)
+        ax.legend(fontsize=7)
+        # Add value labels on bars
+        for bar, val in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, val + 0.02,
+                    f"{val:.2f}", ha="center", va="bottom", fontsize=6)
+        fig.tight_layout()
+        return fig
+    except Exception:
         return None
-    labels = [s.get("id", f"s{i}") for i, s in enumerate(scenes)]
-    values = [s.get("engagement_score", 0) for s in scenes]
-    colors = ["#7c3aed" if v >= 0.5 else "#f59e0b" if v >= 0.3 else "#ef4444" for v in values]
-    return {
-        "data": [{"x": labels, "y": values, "type": "bar",
-                  "marker": {"color": colors},
-                  "name": "Engagement"}],
-        "layout": {
-            "title": "📊 Scene Engagement",
-            "xaxis": {"title": "Scene"},
-            "yaxis": {"title": "Score", "range": [0, 1]},
-            "height": 220,
-            "margin": {"l": 40, "r": 20, "t": 40, "b": 40},
-            "plot_bgcolor": "#f8f7ff",
-            "paper_bgcolor": "#f8f7ff",
-            "shapes": [{"type": "line", "x0": -0.5, "x1": len(labels) - 0.5,
-                        "y0": 0.3, "y1": 0.3,
-                        "line": {"color": "#ef4444", "dash": "dash", "width": 1}}],
-        }
-    }
 
 
 def _format_obs(obs, meta=None):
